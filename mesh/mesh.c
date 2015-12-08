@@ -127,7 +127,6 @@ int main(void)
                     normal_sprite_pointer.cs_mode.mesh = mesh_flag;
                     normal_sprite_pointer.cs_mode.user_clipping = 1;
                     normal_sprite_pointer.cs_mode.end_code = 1;
-                
                     //eq to normal_sprite_pointer.cs_mode.raw = 0x400 | 0x0080 | mesh_flag << 8 | ((((i&1)?0x60000:0)==0)?0:0x2C) | ((5&7)<<3);
 
                     normal_sprite_pointer.cs_width = 64;
@@ -163,7 +162,7 @@ int main(void)
         } 
         vdp1_cmdt_list_end(0);
 
-        vdp2_tvmd_vblank_out_wait();
+        vdp2_tvmd_vblank_in_wait();
         vdp1_cmdt_list_commit();
     }
 

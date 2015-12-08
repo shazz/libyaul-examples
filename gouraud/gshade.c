@@ -122,7 +122,7 @@ int main(void)
             vdp1_cmdt_end();
         } 
         vdp1_cmdt_list_end(0);
-        vdp2_tvmd_vblank_out_wait();
+        vdp2_tvmd_vblank_in_wait();
         vdp1_cmdt_list_commit();        
      }
 
