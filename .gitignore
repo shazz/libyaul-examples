@@ -1,0 +1,6 @@
+.codelite/
+include/
+SaturnWorkspace.workspace
+*.project
+*.bin
+gouraud/run.sh
