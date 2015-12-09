@@ -54,25 +54,26 @@ static void hardware_init(void)
 int main(void)
 {
     int k, m, i, j;
-    uint16_t *p;
+    uint16_t *pgour, *ptex;
 
     hardware_init();
     static uint16_t back_screen_color[] = { COLOR_RGB_DATA | COLOR_RGB888_TO_RGB555(0, 0, 0) };
 
     vdp2_scrn_back_screen_set(/* single_color = */ true, VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color, 1);
 
-    p = (uint16_t *)GOURAUD(0, 0);
-    p[0] = COLOR_RGB_DATA | COLOR_RGB555(31,0,0);
-    p[1] = COLOR_RGB_DATA | COLOR_RGB555(0,31,0);
-    p[2] = COLOR_RGB_DATA | COLOR_RGB555(0,0,31);
-    p[3] = COLOR_RGB_DATA | COLOR_RGB555(31,31,31);
+    pgour = (uint16_t *)GOURAUD(0, 0);
+    pgour[0] = COLOR_RGB_DATA | COLOR_RGB555(31,0,0);
+    pgour[1] = COLOR_RGB_DATA | COLOR_RGB555(0,31,0);
+    pgour[2] = COLOR_RGB_DATA | COLOR_RGB555(0,0,31);
+    pgour[3] = COLOR_RGB_DATA | COLOR_RGB555(31,31,31);
 
-    p = (uint16_t *)0x25C40000; // ?
+    //p = (uint16_t *)0x25C40000; // ?
+    ptex = (uint16_t *)CHAR(0);
     for (i=0; i<64; i++)
     {
         for (j=0; j<64; j++)
         {
-            *(p++) = COLOR_RGB_DATA | ((i^j)&31);
+            *(ptex++) = COLOR_RGB_DATA | ((i^j)&31);
         }
     }
 
