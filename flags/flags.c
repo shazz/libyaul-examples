@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include "flags.h"
+#include "adore_pat.h"
 #include "sintb.h"
 #include "sin1k.h"
 
@@ -51,6 +52,8 @@ unsigned char 	basecol;
 
 unsigned char	*map, map_ij;
 
+int fontoffset = 0;
+
 /* Project the points to screen space */
 void project(point3d *in, point3d *out, int n) {
 	int i;
@@ -62,9 +65,30 @@ void project(point3d *in, point3d *out, int n) {
 	}
 }
 
+void loadFont()
+{
+    uint16_t * pFont;
+    uint16_t * pPal;
+    int i;
+    
+    /* Set up a palette for the text */
+	pPal = (uint16_t *)CLUT(0, 0); //(uint16_t*)0x25C54000;
+	*(pPal++) = 0;
+	for (i=0; i<4; i++) 
+    {
+		*(pPal + i) =  COLOR_RGB_DATA | COLOR_RGB555(i*8+7,31,31);
+		*(pPal + (7-i)) =  COLOR_RGB_DATA | COLOR_RGB555(i*8+7,i*4+19,31);
+	}
+    
+    /* Load the font */
+	pFont = (uint16_t *)CHAR(0); //(unsigned int*)0x25C50000;
+	for (i=0; i<(adore_pat_dat_len-fontoffset); i++) //x300
+		*(pFont++) = adore_pat_dat[i+fontoffset]; /* Font data, 96 characters, 4bpp */
+}
 
 /* Print a string at a given position on the screen using sprites */
-void draw_text(char *txt, int xpos, int ypos) {
+void draw_text(char *txt, int xpos, int ypos) 
+{
 	unsigned int i;
     int x;
     
@@ -78,13 +102,18 @@ void draw_text(char *txt, int xpos, int ypos) {
         normal_sprite_pointer.cs_mode.color_mode = 1; 	// mode 1 COLMODE_16_LUT
         normal_sprite_pointer.cs_mode.user_clipping = 1;
         normal_sprite_pointer.cs_mode.end_code = 1;
+        
+        //#define CLIP_DRAW_INSIDE 0x400
+        //#define COLMODE_16_LUT	1
+        //normal_sprite_pointer.cs_mode.raw = CLIP_DRAW_INSIDE | 0x0080 | ((COLMODE_16_LUT&7)<<3);
 
-        normal_sprite_pointer.cs_clut = 0x54000;
+        normal_sprite_pointer.cs_clut = CLUT(0, 0);
         normal_sprite_pointer.cs_width = 8;
         normal_sprite_pointer.cs_height = 8;
-        normal_sprite_pointer.cs_position.x = xpos+x;
+        normal_sprite_pointer.cs_position.x = xpos + x;
         normal_sprite_pointer.cs_position.y = ypos;
-        normal_sprite_pointer.cs_char = 0x50000+((txt[i]-' ')<<5);
+        normal_sprite_pointer.cs_char =  CHAR(0) + ((txt[i]-' ')<<5);
+        normal_sprite_pointer.cs_grad = 0;
 
         vdp1_cmdt_sprite_draw(&normal_sprite_pointer);        
         
@@ -133,8 +162,8 @@ static void hardware_init(void)
     cpu_intc_enable();
 }
 
-
-int main() {
+int main() 
+{
 	int i,j,k;
 	int xadd,yadd;
 	int sizeX,sizeY;
@@ -143,9 +172,7 @@ int main() {
     unsigned int oldjoyR = 0;
     unsigned int joyL = 0;
     unsigned int oldjoyL = 0;
-	uint16_t *p;
 	unsigned short xan,yan,zan,xan2;
-	unsigned int *lp;
 
     hardware_init();
     
@@ -164,19 +191,7 @@ int main() {
    		colorLut[i+224]= COLOR_RGB_DATA | (i<<5)|i;
   	}
 
-	/* Load the font */
-	lp = (unsigned int*)0x25C50000;
-	for (i=0; i<0x300; i++)
-		*(lp++) = 1; /* Font data, 96 characters, 4bpp, replaced by 1*/
-    
-    
-	/* Set up a palette for the text */
-	p = (uint16_t*)0x25C54000;
-	*(p++) = 0;
-	for (i=0; i<4; i++) {
-		*(p + i) =  COLOR_RGB_DATA | COLOR_RGB555(i*8+7,31,31);
-		*(p + (7-i)) =  COLOR_RGB_DATA | COLOR_RGB555(i*8+7,i*4+19,31);
-	}
+    loadFont();
 
 	camera.x = 48; camera.y = 32; camera.z = -256;
 
@@ -243,8 +258,8 @@ int main() {
             joyL = g_digital.pressed.button.l;
             joyR = g_digital.pressed.button.r;
             
-            if(joyL & !oldjoyL) switch_flag(flagnum-1);   
-            else if(joyR & !oldjoyR) switch_flag(flagnum+1);  
+            if(joyL & !oldjoyL) fontoffset--; //switch_flag(flagnum-1);   
+            else if(joyR & !oldjoyR) fontoffset++; //switch_flag(flagnum+1);  
             
             oldjoyR = joyR;
             oldjoyL = joyL;
@@ -252,7 +267,12 @@ int main() {
         
 		/* Wait for next vblank */
         vdp2_tvmd_vblank_out_wait();   
-
+        
+        // to remove
+        if(fontoffset < 0) fontoffset=0;
+        if(fontoffset > 0x300) fontoffset=0x300;
+        loadFont(fontoffset);
+    
         /* Make new list */
         vdp1_cmdt_list_begin(0);  
         {
@@ -261,9 +281,14 @@ int main() {
             vdp1_cmdt_local_coord_set(&local);
 
             /* Draw some text on the screen */
-            draw_text(country[flagnum],160-(strlen(country[flagnum])<<2),28);
+            char sOffset[3];
+            sprintf(sOffset, "%3d", fontoffset);
+            draw_text(sOffset,160,28);
+            draw_text("AAAAA ABCDEFGHIJKLMNOPQRSTUVWXYZ",0,10);
+            //draw_text(country[flagnum],160-(strlen(country[flagnum])<<2),28);
             draw_text("L: Previous",32,192);
             draw_text("R: Next",236,192);
+            
 
             /* Now render the flag, quad by quad */
             iMul22 = 0;
