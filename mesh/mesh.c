@@ -3,8 +3,8 @@
 // Ported by Shazz on libyaul, 2015
 
 #include <yaul.h>
-#include <stdlib.h>
 
+#include <stdlib.h>
 
 struct smpc_peripheral_digital g_digital;
 /* Frame counter */
@@ -67,7 +67,6 @@ int main(void)
     pgour[2] = COLOR_RGB_DATA | COLOR_RGB555(0,0,31);
     pgour[3] = COLOR_RGB_DATA | COLOR_RGB555(31,31,31);
 
-    //p = (uint16_t *)0x25C40000; // ?
     ptex = (uint16_t *)CHAR(0);
     for (i=0; i<64; i++)
     {
@@ -135,7 +134,7 @@ int main(void)
                     normal_sprite_pointer.cs_position.x = m;
                     normal_sprite_pointer.cs_position.y = k;
 
-                    normal_sprite_pointer.cs_char = 0x40000;
+                    normal_sprite_pointer.cs_char = CHAR(0);
 
                     normal_sprite_pointer.cs_grad = ((i&1)?GOURAUD(0, 0):0); //((i&1)?0x60000:0) >> 3;
 
