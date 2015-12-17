@@ -1,0 +1,7 @@
+include ${LIBYAUL}/examples/pre.common.mk
+
+PROJECT:= lzsscube
+OBJECTS= lzssboot.s lzssboot.o
+LDSCRIPT=linker_lzss.ld
+
+include ${LIBYAUL}/examples/post.common.mk
