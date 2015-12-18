@@ -1,6 +1,6 @@
-include ../../pre.common.mk
+include ${LIBYAUL}/examples/pre.common.mk
 
 PROJECT:= mic3d
 OBJECTS+= mic3d.o
 
-include ../../post.common.mk
+include ${LIBYAUL}/examples/post.common.mk

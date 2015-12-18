@@ -104,10 +104,10 @@ int main(void)
                 k = 22 + (i/3) * 100;
                 
                 polygon_pointer.cp_color = colors[i];
-                //p[CMDPMOD=0x02] = 0x00C0 | 0x2C to get RGB mode, gouraud shading enabled
+                //p[CMDPMOD=0x02] = 0x0C0 | 0x2C to get RGB mode, gouraud shading enabled
                 polygon_pointer.cp_mode.raw = 0x00C0 | 0x2C;
                 
-                polygon_pointer.cp_grad = GOURAUD(0, 0);
+                polygon_pointer.cp_grad = 0; //GOURAUD(0, 0);
                 polygon_pointer.cp_vertex.a.x = m;
                 polygon_pointer.cp_vertex.a.y = k;
                 polygon_pointer.cp_vertex.b.x = m + 79;

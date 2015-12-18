@@ -1,6 +1,6 @@
-include ../../pre.common.mk
+include ${LIBYAUL}/examples/pre.common.mk
 
 PROJECT:= flags
 OBJECTS+= flags.o 
 
-include ../../post.common.mk
+include ${LIBYAUL}/examples/post.common.mk
