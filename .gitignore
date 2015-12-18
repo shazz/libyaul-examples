@@ -4,3 +4,5 @@ SaturnWorkspace.workspace
 *.project
 *.bin
 gouraud/run.sh
+*.lzss
+*.zip
