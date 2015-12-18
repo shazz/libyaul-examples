@@ -111,13 +111,14 @@ static void hardware_init(void)
 
 int main()
 {
-    unsigned int joyA = 0, joyB = 0, joyC = 0, joyX = 0, joyY = 0, joyZ = 0, joyL = 0, joyR = 0, joyStart = 0;
-    unsigned int oldjoyA = 0, oldjoyB = 0, oldjoyC = 0, oldjoyX = 0, oldjoyY = 0, oldjoyZ = 0, oldjoyL = 0, oldjoyR = 0, oldjoyStart = 0;
+    unsigned int joyUpState=0, joyDownState=0, joyCState=0, joyRightState=0, joyLeftState=0, joyZState=0, joyLState=0, joyRState=0, joyStartState=0;
+    //unsigned int oldjoyA = 0, oldjoyB = 0, oldjoyC = 0, oldjoyX = 0, oldjoyY = 0, oldjoyZ = 0, oldjoyL = 0, oldjoyR = 0, oldjoyStart = 0;
     uint16_t fbcr = 0x0001;
     int x, y, frame_count = 0;
     object_t foo[4];
     
 	uint16_t * pGour, * p;
+    uint16_t frameCol = COLOR_RGB_DATA | COLOR_RGB555(31,0,0);
 
     hardware_init();
     
@@ -183,51 +184,90 @@ int main()
         
 		/* Wait for next vblank */
         vdp2_tvmd_vblank_out_wait(); 
+        vdp2_tvmd_vblank_in_wait();
 
         /* Trigger plot and bump frame counter */
         MEMORY_WRITE(16, VDP1(FBCR), fbcr);
         frame_count++;
         
         /* Poll joypad */
+        
+        frameCol = COLOR_RGB_DATA | COLOR_RGB555(31,0,0);
         if (g_digital.connected == 1) 
         {
-            joyA = g_digital.pressed.button.a;
-            joyB = g_digital.pressed.button.b;
-            joyC = g_digital.pressed.button.c;
-            joyStart = g_digital.pressed.button.start;
+            joyUpState = g_digital.pressed.button.up;
+            joyDownState = g_digital.pressed.button.down;
+            joyCState = g_digital.pressed.button.c;
+            joyRightState = g_digital.pressed.button.right;
+            joyLeftState = g_digital.pressed.button.left;
+            joyZState = g_digital.pressed.button.z;
+            joyLState = g_digital.pressed.button.l;
+            joyRState = g_digital.pressed.button.r;
+            joyStartState = g_digital.pressed.button.start;
         }     
         
-        if(joyStart & !oldjoyStart) break;
+        // leave
+        if(joyStartState) break;
         
         /* Update TVMR */
         temp = 0x0000;
-        if(joyA & !oldjoyA) temp |= 0x0004;
-        else if(joyB & !oldjoyB) temp |= 0x0002;
-        else if(joyC & !oldjoyC) temp |= 0x0001;
+        if(joyUpState)
+        {
+            temp |= 0x0004;
+            frameCol = COLOR_RGB_DATA | COLOR_RGB555(0,31,0);
+        }
+        else if(joyDownState)
+        {
+            temp |= 0x0002;
+            frameCol = COLOR_RGB_DATA | COLOR_RGB555(0,0,31);
+        } 
+        else if(joyCState)
+        {
+            temp |= 0x0001;
+            frameCol = COLOR_RGB_DATA | COLOR_RGB555(0,31,31);
+        } 
         MEMORY_WRITE(16, VDP1(TVMR), temp);
         
         /* Update TVMD */
         temp = 0x8000;
-        if(joyL & !oldjoyL) temp |= 0x00C0;
-        if(joyR & !oldjoyR) temp |= 0x0002;
+        if(joyLState)
+        {
+            temp |= 0x00C0;
+            frameCol = COLOR_RGB_DATA | COLOR_RGB555(31,0,31);
+        }  
+        else if(joyRState)
+        {
+            temp |= 0x0002;
+            frameCol = COLOR_RGB_DATA | COLOR_RGB555(31,31,0);
+        }  
         MEMORY_WRITE(16, VDP1(TVMD), temp);
 
         /* Update FBCR */
         fbcr = 0x0001;
-        if(joyY & !oldjoyY) fbcr |= 0x0008;
-        if(joyZ & !oldjoyZ) fbcr |= 0x0004;
-
-        /* Update EWRR */
-        MEMORY_WRITE(16, VDP1(EWRR), (joyX & !oldjoyX) ? 0x0101 : 0x50DF);        
+        if(joyLeftState)
+        {
+            fbcr |= 0x0008;
+            frameCol = COLOR_RGB_DATA | COLOR_RGB555(15,15,0);
+        } 
+        else if(joyZState) 
+        {
+            fbcr |= 0x0004;
+            frameCol = COLOR_RGB_DATA | COLOR_RGB555(0,15,15);
+        } 
         
-        oldjoyA = joyA;
-        oldjoyB = joyB; 
-        oldjoyC =  joyC;     
-        oldjoyStart = joyStart;
+        /* Update EWRR */
+        if(joyRightState)
+        {
+            MEMORY_WRITE(16, VDP1(EWRR), 0x0101);   
+            frameCol = COLOR_RGB_DATA | COLOR_RGB555(0,0,0);
+        }
+        else MEMORY_WRITE(16, VDP1(EWRR), 0x50DF);        
         
         /* Move objects */
         for(i=0;i<4;i++)
+        {
             update_pos(&foo[i]);
+        }
         
         /* Make new list */
         vdp1_cmdt_list_begin(0);  
@@ -236,9 +276,10 @@ int main()
             vdp1_cmdt_user_clip_coord_set(&user_clip);
             vdp1_cmdt_local_coord_set(&local);
 
+            // Frame
             MESH(0);
             memset(&polylineframe_pointer, 0x00, sizeof(struct vdp1_cmdt_polyline));
-            polylineframe_pointer.cl_color = COLOR_RGB_DATA | COLOR_RGB555(31, 0 , 0);
+            polylineframe_pointer.cl_color = frameCol;
             polylineframe_pointer.cl_mode.raw = 0x00C0 | mesh_flag;
             polylineframe_pointer.cl_vertex.a.x = 319;
             polylineframe_pointer.cl_vertex.a.y = 0;
@@ -251,6 +292,7 @@ int main()
             
             vdp1_cmdt_polyline_draw(&polylineframe_pointer);  
             
+            // Gouraud polygon
             MESH(1);
             memset(&polygon_pointer, 0x00, sizeof(struct vdp1_cmdt_polygon));
             
@@ -274,6 +316,7 @@ int main()
 
             vdp1_cmdt_polygon_draw(&polygon_pointer);    
 
+            // polyline 
             MESH(0);
             memset(&polyline_pointer, 0x00, sizeof(struct vdp1_cmdt_polyline));
             polyline_pointer.cl_color = COLOR_RGB_DATA | COLOR_RGB555(31, 0 , 31);
@@ -289,6 +332,7 @@ int main()
             
             vdp1_cmdt_polyline_draw(&polyline_pointer);  
 
+            // Textured distorted sprite
             memset(&distorted_sprite_pointer, 0x00, sizeof(struct vdp1_cmdt_sprite));
             distorted_sprite_pointer.cs_type = CMDT_TYPE_DISTORTED_SPRITE;
 
