@@ -7,15 +7,16 @@
 /* upon it.											*/
 
 /* This linker script sets up code to run from		*/
-/* 0x060E0000						*/
+/* 0x000210000	
+ */
 
 /* OUTPUT_FORMAT("elf32-sh") */
 OUTPUT_ARCH(sh)
 ENTRY(_start)
 
-__text_start = 0x060E0000;
-__stack_bottom = 0x060F7FFF;
-__stack_top	= 0x060FFFFF;
+__text_start = 	0x000210000;
+__stack_bottom = 	0x0002F7FFF;
+__stack_top	= 	0x0002FFFFF;
 _stack = __stack_top;
 
 SECTIONS
