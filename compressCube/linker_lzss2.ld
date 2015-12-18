@@ -13,11 +13,11 @@ ENTRY (_start)
 SEARCH_DIR ("/path/to/sh-elf/sh-elf/lib");
 
 MEMORY {
-  /* 0x060E0000-0x060FFFFF */
-  ram (Wx) : ORIGIN = 0x060E0000, LENGTH = 0x017FFF
+  /* 0x000210000-0x0002FFFFF*/
+  ram (Wx) : ORIGIN = 0x000210000, LENGTH = 0x0E7FFF
 }
 
-/* stack from 0x060F7FFF to 0x060FFFFF*/
+/* stack from 0x0002F7FFF to 0x0002FFFFF*/
 PROVIDE (__stack = ORIGIN (ram) + LENGTH (ram) + 0x00008000);
 PROVIDE (__stack_end = ORIGIN (ram) + LENGTH (ram));
 
