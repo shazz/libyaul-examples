@@ -72,6 +72,7 @@ void initScrollScreens(void)
     nbg0_format.sbf_bitmap_size.width = 512; /* Bitmap sizes: 512x256, 512x512, 1024x256, 1024x512 */
     nbg0_format.sbf_bitmap_size.height = 256;
     nbg0_format.sbf_bitmap_pattern = VRAM_ADDR_4MBIT(0, 0x00000); /* Bitmap pattern lead address */
+    nbg0_format.sbf_color_palette = (uint32_t)_nbg0_color_palette;
 
     vdp2_scrn_bitmap_format_set(&nbg0_format);
     vdp2_priority_spn_set(SCRN_NBG0, 7);
