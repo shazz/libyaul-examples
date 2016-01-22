@@ -11,8 +11,8 @@
 #include "tables.h"
 
 #define SCROLLFN
-//#define SCROLL_HORIZ   
-//#define SCROLL_VERT
+#define SCROLL_HORIZ   
+#define SCROLL_VERT
 //#define ZOOM
 //#define JOYSTICK    
 
@@ -30,7 +30,7 @@ static void vblank_out_handler(irq_mux_handle_t *);
 
 /* CRAM */
 static uint32_t *_nbg0_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(0, 0, 0);
-static uint32_t *_nbg1_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(0, 0, 32);
+static uint32_t *_nbg1_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(1, 0, 0);
 
 #ifdef SCROLLFN
 /* Line Scroll table address */
@@ -97,9 +97,10 @@ void initScrollScreens(void)
     nbg1_format.sbf_color_palette = (uint32_t)_nbg1_color_palette;
 
     vdp2_scrn_bitmap_format_set(&nbg1_format);
+    MEMORY_WRITE(16, VDP2(CRAOFA), (1 & 0x7) << 4);
     vdp2_priority_spn_set(SCRN_NBG1, 7);    
 
-    MEMORY_WRITE(16, VDP2(RAMCTL), 0x1300);
+    //MEMORY_WRITE(16, VDP2(RAMCTL), 0x1300);
 
     vram_ctl = vdp2_vram_control_get();
     vram_ctl->vram_cycp.pt[0].t7 = VRAM_CTL_CYCP_CHPNDR_NBG0;
@@ -131,8 +132,8 @@ void initScrollScreens(void)
 	uint16_t y;
 	for (y = 0; y < 512; y++) 
 	{
-			line_scroll_tb[y] = (lut[y]) << 16;
-			line_scroll_tb[y + 512] = (lut[y]) << 16;
+			line_scroll_tb[y] = (lut[y]) << 15;
+			line_scroll_tb[y + 512] = (lut[y]) << 15;
 	}
 	
 	linescrollfmt.ls_scrn = SCRN_NBG1;
@@ -196,7 +197,7 @@ int main(void)
 	hardware_init();
     initScrollScreens();
 
-	static uint16_t back_screen_color[] = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
+	static uint16_t back_screen_color[] = { COLOR_RGB_DATA | 0x0842 };
 	vdp2_scrn_back_screen_set(/* single_color = */ true, VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color, 1);
 
 	/* Main loop */
