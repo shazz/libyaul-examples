@@ -29,8 +29,10 @@ static void vblank_out_handler(irq_mux_handle_t *);
 
 
 /* CRAM */
-static uint32_t *_nbg0_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(0, 0, 0);
-static uint32_t *_nbg1_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(1, 0, 0);
+#define NBG0_VRAM_PAL_OFFSET 0
+#define NBG1_VRAM_PAL_OFFSET 1
+static uint32_t *_nbg0_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(NBG0_VRAM_PAL_OFFSET, 0, 0);
+static uint32_t *_nbg1_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(NBG1_VRAM_PAL_OFFSET, 0, 0);
 
 #ifdef SCROLLFN
 /* Line Scroll table address */
@@ -87,6 +89,7 @@ void initScrollScreens(void)
     nbg0_format.sbf_color_palette = (uint32_t)_nbg0_color_palette;
 
     vdp2_scrn_bitmap_format_set(&nbg0_format);
+    MEMORY_WRITE(16, VDP2(CRAOFA), (NBG0_VRAM_PAL_OFFSET & 0x7));
     vdp2_priority_spn_set(SCRN_NBG0, 6);
 
     nbg1_format.sbf_scroll_screen = SCRN_NBG1; /* Normal/rotational background */
@@ -97,7 +100,7 @@ void initScrollScreens(void)
     nbg1_format.sbf_color_palette = (uint32_t)_nbg1_color_palette;
 
     vdp2_scrn_bitmap_format_set(&nbg1_format);
-    MEMORY_WRITE(16, VDP2(CRAOFA), (1 & 0x7) << 4);
+    MEMORY_WRITE(16, VDP2(CRAOFA), (NBG1_VRAM_PAL_OFFSET & 0x7) << 4);
     vdp2_priority_spn_set(SCRN_NBG1, 7);    
 
     //MEMORY_WRITE(16, VDP2(RAMCTL), 0x1300);
