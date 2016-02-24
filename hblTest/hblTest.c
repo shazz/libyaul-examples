@@ -48,6 +48,15 @@ static void hardware_init(void)
 	/* VDP2 */
 	vdp2_init();
 
+	/* Enable color offset function on scroll screen NBG0 and assign all screens to color offset A */
+    MEMORY_WRITE(16, VDP2(CLOFEN), 0x007f); /* 11 1111 */
+    MEMORY_WRITE(16, VDP2(CLOFSL), 0x0000);
+
+	/* Set R,G,B values for color offset A to none */
+	MEMORY_WRITE(16, VDP2(COAR), 0x0000);
+	MEMORY_WRITE(16, VDP2(COAB), 0x0000);
+	MEMORY_WRITE(16, VDP2(COAG), 0x0000);    
+
 	/* VDP1 */
 	vdp1_init();
 
@@ -91,7 +100,7 @@ static void hardware_init(void)
 	irq_mux_handle_add(&scu_timer1_irq_mux, timer1_handler, NULL);
     
     // Set timer0 compare and timer1 countdown value+enable
-	g_timer0_handler_compare = DISPLAY_PIXEL_HEIGHT;
+	g_timer0_handler_compare = DISPLAY_PIXEL_HEIGHT/2;
 	scu_timer_0_set(g_timer0_handler_compare);
 	scu_timer_1_set(TIMER_T1_COUNTDOWN);
 	scu_timer_1_mode_set(true);    
@@ -168,6 +177,10 @@ static void vblank_in_handler(irq_mux_handle_t *irq_mux __unused)
  */
 static void vblank_out_handler(irq_mux_handle_t *irq_mux __unused)
 {
+    MEMORY_WRITE(16, VDP2(COAR), 0);
+    MEMORY_WRITE(16, VDP2(COAB), 0);
+    MEMORY_WRITE(16, VDP2(COAG), 0);   
+  
  	tick = (tick & 0xFFFFFFFF) + 1;
 }
 
@@ -188,6 +201,10 @@ void timer0_handler(irq_mux_handle_t *irq_mux __unused)
 
    	/* Update the timer 0 counter */
 	g_timer0_handler_counter += 1;
+
+    MEMORY_WRITE(16, VDP2(COAR), -80);
+    MEMORY_WRITE(16, VDP2(COAB), -80);
+    MEMORY_WRITE(16, VDP2(COAG), -80); 
 
 	/* reset compare reg */
     scu_timer_0_set(g_timer0_handler_compare);
