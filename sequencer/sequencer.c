@@ -13,7 +13,7 @@
 
 #include <sys/queue.h>
 
-#include "scene.h"
+#include "sequencer.h"
 
 TAILQ_HEAD(scenes, scene);
 
@@ -34,10 +34,14 @@ struct scene {
 static struct scenes scenes;
 static struct scene * current_scene;
 
+static bool isStarted = false;
+static bool isInit = false;
 
+#ifdef DEBUG
 struct cons cons;
 static char * consbuf;
 int nbOfScenesShown = 1;
+#endif  
 
 /*
  * 
@@ -48,49 +52,72 @@ int nbOfScenesShown = 1;
 void
 sequencer_initialize(void)
 {
-    TAILQ_INIT(&scenes);
-    current_scene = TAILQ_FIRST(&scenes);
+    if(isInit == false) {
+        TAILQ_INIT(&scenes);
+        isInit = true;
+    }
         
-    /* CONS */
+#ifdef DEBUG   
+    /* CONS */ 
     cons_init(&cons, CONS_DRIVER_VDP2);  
-        
-    consbuf = (char *)malloc(1024);        
+    consbuf = (char *)malloc(1024); 
+#endif       
 }
 
 void 
 sequencer_update(uint32_t timer)
 {
+    if(isStarted == false) return;
+    
     if(current_scene != NULL)
     {
-        if(current_scene->start_time >= timer || current_scene->end_time <= timer)
-        {
-            sequencer_load_next();
-            nbOfScenesShown++;
-        }
-    }
-    
-    (void)sprintf(consbuf, "[01;2HFrame Counter : %08lu", timer); 
-    cons_write(&cons, consbuf);
-    
-    (void)sprintf(consbuf, "[02;2HScene shown : %08d", nbOfScenesShown); 
-    cons_write(&cons, consbuf);        
-    
-    (void)sprintf(consbuf, "[03;2HScene : %s", current_scene->name); 
-    cons_write(&cons, consbuf);    
-    
-    (void)sprintf(consbuf, "[04;2HStart : %08ld", current_scene->start_time); 
-    cons_write(&cons, consbuf);      
+#ifdef DEBUG
+        (void)sprintf(consbuf, "[01;2HFrame Counter : %08lu", timer); 
+        cons_write(&cons, consbuf);
+        
+        (void)sprintf(consbuf, "[02;2HScene shown : %08d", nbOfScenesShown); 
+        cons_write(&cons, consbuf);        
+        
+        (void)sprintf(consbuf, "[03;2HScene : %s", current_scene->name); 
+        cons_write(&cons, consbuf);    
+        
+        (void)sprintf(consbuf, "[04;2HStart : %08lu", current_scene->start_time); 
+        cons_write(&cons, consbuf);      
 
-    (void)sprintf(consbuf, "[05;2HStart : %08ld", current_scene->end_time); 
-    cons_write(&cons, consbuf);   
-    
-    (void)sprintf(consbuf, "[06;2HStart : %08ld", current_scene->duration); 
-    cons_write(&cons, consbuf);      
+        (void)sprintf(consbuf, "[05;2HEnd : %08lu", current_scene->end_time); 
+        cons_write(&cons, consbuf);   
+        
+        (void)sprintf(consbuf, "[06;2HDuration : %08lu", current_scene->duration); 
+        cons_write(&cons, consbuf);
+#endif      
+
+        if(timer < current_scene->start_time ) 
+            return;
+        
+        if(timer > current_scene->end_time)
+        {
+#ifdef DEBUG            
+            nbOfScenesShown++;
+            cons_write(&cons, "[10;2HMoving to next scene"); 
+#endif              
+            sequencer_load_next();
+            
+        }
+#ifdef DEBUG         
+        else
+        {
+            cons_write(&cons, "[10;2HNot moving            "); 
+        }    
+#endif         
+    }
 }
 
-void sequencer_terminate(void)
+void sequencer_stop(void)
 {
+    isStarted = false;
+#ifdef DEBUG      
     free(consbuf);
+#endif     
 }
 
 
@@ -122,6 +149,8 @@ sequencer_register(const char *name, uint32_t start_time, uint32_t end_time, uin
         scene->initialized = false;
 
         TAILQ_INSERT_TAIL(&scenes, scene, entries);
+        
+        //current_scene = TAILQ_FIRST(&scenes);
 
         return 0;
 }
@@ -137,6 +166,22 @@ sequencer_load(const char *name)
                         return;
                 }
         }
+}
+
+void
+sequencer_start()
+{
+    if(isStarted == false) {
+        if(current_scene == NULL) {
+            current_scene = TAILQ_FIRST(&scenes);
+        }
+        isStarted = true;       
+    }
+}
+
+bool sequencer_isStarted()
+{
+    return isStarted;
 }
 
 void
@@ -160,7 +205,7 @@ sequencer_load_next(void)
 void
 scene_init(void)
 {
-	if(!current_scene->initialized) {
+	if(current_scene->initialized == false) {       
 		current_scene->init();
 		current_scene->initialized = true;
 	}
@@ -176,14 +221,16 @@ scene_update(void)
 void
 scene_draw(void)
 {
+#ifdef DEBUG       
     cons_flush(&cons);    
+#endif     
 	current_scene->draw();
 }
 
 void
 scene_exit(void)
 {
-	if(current_scene->initialized) {
+	if(current_scene->initialized == true) {          
 		current_scene->exit();
 		current_scene->initialized = false;
 	}

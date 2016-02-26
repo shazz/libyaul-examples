@@ -1,7 +1,9 @@
 #include <yaul.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
-#include "scene.h"
+#include "sequencer.h"
+#include "scenes.h"
 
 struct smpc_peripheral_digital g_digital;
 /* Frame counter */
@@ -9,6 +11,7 @@ volatile uint32_t g_frame_counter = 0;
 static uint32_t tick = 0;
 static void vblank_in_handler(irq_mux_handle_t *);
 static void vblank_out_handler(irq_mux_handle_t *);
+void init_vdp2_VRAM(void);
 
 irq_mux_t *vblank_in;
 irq_mux_t *vblank_out;
@@ -17,6 +20,16 @@ static void hardware_init(void)
 {
 	/* VDP2 */
 	vdp2_init();
+    init_vdp2_VRAM();
+    
+    /* set 320x240 res, back color mode */
+    vdp2_tvmd_display_clear();
+    uint16_t tvmd = MEMORY_READ(16, VDP2(TVMD));
+    tvmd |= ((1 << 8) | (1 << 4));  // set BDCLMD,  VRES0 to 1
+    MEMORY_WRITE(16, VDP2(TVMD), 0x8110);    
+    
+    // Set Color mode to mode 0 (2KWord Color RAM)
+    MEMORY_WRITE(16, VDP2(RAMCTL), 0x300);        
 
 	/* VDP1 */
 	vdp1_init();
@@ -36,40 +49,53 @@ static void hardware_init(void)
 
 	/* Enable interrupts */
 	cpu_intc_enable();
+    
+    /* Set screen to black */
+    //static uint16_t back_screen_color[] = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
+	//vdp2_scrn_back_screen_set(/* single_color = */ true, VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color, 1);
 }
 
 
-main(void)
+int main(void)
 {
 		hardware_init();
 
-        fs_init();
+        sequencer_initialize();
+
+        sequencer_register("title", 0, 900, 900-0, title_init, title_update, title_draw, title_exit);
+        sequencer_register("logo", 901, 9000, 900000-901, logo_init, logo_update, logo_draw, logo_exit);
+        //sequencer_register("logo", 0, 100, 100-0, logo_init, logo_update, logo_draw, logo_exit);
+		//sequencer_register("title", 101, 900, 900-101, title_init, title_update, title_draw, title_exit);
+
+        sequencer_start();
+        //sequencer_load("title");
+        
         scene_init();
-
-		scene_register("title", 0, 300, -1, title_init, title_update, title_draw, title_exit);
-		scene_register("tutorial", -1, -1, -1, tutorial_init, tutorial_update, tutorial_draw, tutorial_exit);
-		scene_register("game", -1, -1, -1, game_init, game_update, game_draw, game_exit);
-		scene_register("game-over", -1, -1, 180, game_over_init, game_over_update, game_over_draw, game_over_exit);
-
-        scene_load("title");
 
         for(;;) {
 
+                // VBL Begin
                 vdp2_tvmd_vblank_out_wait();
+                sequencer_update(g_frame_counter);
                 scene_update();
-
-                vdp2_tvmd_vblank_in_wait();
-                /* VBLANK */
                 scene_draw();
+                
+                // VBL End
+                vdp2_tvmd_vblank_in_wait();                
         }
+        
+        sequencer_stop();
 
         return 0;
 }
 
 static void vblank_in_handler(irq_mux_handle_t *irq_mux __unused)
 {
-  	g_frame_counter = (tick > 0) ? (g_frame_counter + 1) : 0;
-  	smpc_peripheral_digital_port(1, &g_digital);
+    if(sequencer_isStarted())
+    {
+        g_frame_counter = (tick > 0) ? (g_frame_counter + 1) : 0;
+        smpc_peripheral_digital_port(1, &g_digital);
+    }
 }
 
 /*
@@ -82,3 +108,21 @@ static void vblank_out_handler(irq_mux_handle_t *irq_mux __unused)
 {
  	tick = (tick & 0xFFFFFFFF) + 1;
 }
+
+
+void init_vdp2_VRAM(void)
+{
+	uint32_t	loop;
+	uint32_t	maxloop;
+    
+	loop = 0;
+	maxloop = 512*1024;
+
+	while (loop < maxloop)
+	{
+		*((uint32_t *) (VRAM_ADDR_4MBIT(0, 0) + loop)) = 0;
+
+		loop += 4;
+	}
+}
+    

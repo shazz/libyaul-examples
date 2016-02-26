@@ -8,6 +8,8 @@
 #ifndef SCENE_H
 #define SCENE_H
 
+#define DEBUG
+
 /*
  * typical dummy usage
  * scene_init();
@@ -35,11 +37,11 @@
 void sequencer_initialize(void);
 
 /*
- * void sequencer_terminate(void)
+ * void sequencer_stop(void)
  *
- * Terminate the seq engine
+ * Stop the sequencer
  */
-void sequencer_terminate(void);
+void sequencer_stop(void);
 
 /*
  * void sequencer_update(void)
@@ -65,6 +67,20 @@ void sequencer_update(uint32_t timer);
  * Register a new scene in the queue
  */
 int sequencer_register(const char *, uint32_t, uint32_t, uint32_t, void (*)(void), void (*)(void), void (*)(void), void (*)(void));
+
+/*
+ * void sequencer_start()
+ *
+ * load the first scene if no scene loaded and starts
+ */
+void sequencer_start();
+
+/*
+ * bool sequencer_isStarted()
+ *
+ * return sequencer state
+ */
+bool sequencer_isStarted();
 
 /*
  * void sequencer_load(const char *)

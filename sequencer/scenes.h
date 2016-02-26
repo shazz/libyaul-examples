@@ -5,12 +5,22 @@
  * Israel Jacquez <mrkotfw@gmail.com>
  */
 
-#ifndef TITLE_H
-#define TITLE_H
+#ifndef SCENES_H
+#define SCENES_H
+
+void logo_init(void);
+void logo_update(void);
+void logo_draw(void);
+void logo_exit(void);
+
 
 void title_init(void);
 void title_update(void);
 void title_draw(void);
 void title_exit(void);
 
-#endif /* !TITLE_H */
+#ifdef DEBUG
+extern struct cons cons;
+#endif
+
+#endif /* !SCENES_H */
