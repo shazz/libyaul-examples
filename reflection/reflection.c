@@ -49,6 +49,7 @@ static void vblank_out_handler(irq_mux_handle_t *);
 static void timer0_handler(irq_mux_handle_t *);
 
 static void scu_timer0(void);
+void init_vdp2_VRAM(void);
 
 irq_mux_t scu_timer0_irq_mux;
 irq_mux_t * vblank_in;
@@ -82,6 +83,7 @@ static void hardware_init(void)
 {
 	/* VDP2 */
 	vdp2_init();
+    init_vdp2_VRAM();
     
     /* set 320x240 res */
     vdp2_tvmd_display_clear();
@@ -381,4 +383,20 @@ static void timer0_handler(irq_mux_handle_t *irq_mux __unused)
 	/* Restore the Paranoia save of MACH/MACL */
 	__asm__("lds.l	@r15+,mach\n");
     __asm__("lds.l	@r15+,macl\n");    
+}
+
+void init_vdp2_VRAM(void)
+{
+	uint32_t	loop;
+	uint32_t	maxloop;
+        
+	loop = 0;
+	maxloop = 512*1024;
+
+	while (loop < maxloop)
+	{
+		*((uint32_t *) (VRAM_ADDR_4MBIT(0, 0) + loop)) = 0;
+
+		loop += 4;
+	}
 }
