@@ -9,7 +9,6 @@
 #include <stdlib.h>
 
 #include "bitmaps.h"
-#include "stars.h"
 #include "tables.h"
 
 /*
@@ -52,10 +51,9 @@ static uint16_t g_ofs = 0;
 static uint16_t g_counterX = 0;
 static uint16_t g_counterY = 0;
 static int8_t   g_incrY = +2;    
+static int16_t  g_timer = -255;
 
-#define NBG1_VRAM_PAL_NB 1
-
-static uint32_t *_nbg1_color_palette = (uint32_t *)CRAM_MODE_0_OFFSET(NBG1_VRAM_PAL_NB, 0, 0);
+static uint32_t *backscreen_tb = (uint32_t *)VRAM_ADDR_4MBIT(3, 0x0);
 
 /* Line Scroll table address */
 static uint32_t *line_scroll_tb = (uint32_t *)VRAM_ADDR_4MBIT(2, 0x0);
@@ -77,14 +75,20 @@ static void hardware_init(void)
     // Set Color mode to mode 0 (2KWord Color RAM)
     MEMORY_WRITE(16, VDP2(RAMCTL), 0x300);        
     
-	/* Enable color offset function on scroll screen NBG0 and assign all screens to color offset A */
-    MEMORY_WRITE(16, VDP2(CLOFEN), 0x0001); /* 00 0001 */
-    MEMORY_WRITE(16, VDP2(CLOFSL), 0x0000);
+	/* Enable color offset function on back anf NBG0 only */
+    MEMORY_WRITE(16, VDP2(CLOFEN), 0x0021); /* 010 0001 */
+    /* assign Back offset B, other to offset A*/
+    MEMORY_WRITE(16, VDP2(CLOFSL), 0x0020); /* 010 0000 */
 
 	/* Set R,G,B values for color offset A to none */
-	MEMORY_WRITE(16, VDP2(COAR), 0x0000);
-	MEMORY_WRITE(16, VDP2(COAB), 0x0000);
-	MEMORY_WRITE(16, VDP2(COAG), 0x0000);    
+	MEMORY_WRITE(16, VDP2(COAR), 0);
+	MEMORY_WRITE(16, VDP2(COAB), 0);
+	MEMORY_WRITE(16, VDP2(COAG), 0);  
+
+	/* Set R,G,B values for color offset B to -255 */
+	MEMORY_WRITE(16, VDP2(COBR), -255);
+	MEMORY_WRITE(16, VDP2(COBB), -255);
+	MEMORY_WRITE(16, VDP2(COBG), -255);      
 
 	/* Disable interrupts */
 	cpu_intc_disable();
@@ -116,12 +120,21 @@ static void hardware_init(void)
 	cpu_intc_enable();
 }
      
+void set_backscreen(void)
+{
+    /* Copy rasters bars color data to VRAM */
+    memcpy(backscreen_tb, backscreen, sizeof(backscreen));   
+
+    /* set BKTAL and BKTAU (Back screen table address register */
+    MEMORY_WRITE(16, VDP2(BKTAL), ( ((uint32_t) backscreen_tb >> 1) & 0x0FFFF) );
+    MEMORY_WRITE(16, VDP2(BKTAU), (0x8000 | ( ((uint32_t) backscreen_tb >> 17) & 0x7)));      
+}
 
 /*
- *  void initScrollScreenNBBG0(void)
+ *  void set_linescroll_NBG0(void)
  *  Setup line scroll
  */
-void initScrollScreenNBG0(void)
+void set_linescroll_NBG0(void)
 {
     uint16_t y;
 
@@ -153,45 +166,21 @@ void initScrollScreenNBG0(void)
     linescrollfmt.ls_int = 0;	              
     linescrollfmt.ls_fun =  SCRN_LS_N0SCX | SCRN_LS_N0SCY;	   // enable : SCRN_LS_N0SCX | SCRN_LS_N0SCY | N0LSS0 | N0LSS1 | N0LZMX       
     vdp2_scrn_ls_set(&linescrollfmt);
+    
+    // set priority for NB1 to be backward NBG0
+    vdp2_priority_spn_set(SCRN_NBG0, 7);        
+    vdp2_scrn_display_set(SCRN_NBG0, /* transparent = */ true);    
 }
 
 /*
- *  void initScrollScreenNBBG1(void)
- *  Setup line scroll
+ *  void set_NBG1(void)
+ *  Setup NBG1
  */
-void initScrollScreenNBG1(void)
+void set_NBG1(void)
 {
-    /* set NBG1 in bitmap mode, 16 col, 512x256 */
-    struct scrn_bitmap_format nbg1_format;
-    //uint16_t bmpma;
-
-    /* We want to be in VBLANK-IN (retrace) */
-    vdp2_tvmd_display_clear();
-    
-    /* Copy the NBG1 bitmap, BGR555 palette data */
-    memcpy((void *)VRAM_ADDR_4MBIT(1, 0x00000), stars_data, sizeof(stars_data));   
-    memcpy(_nbg1_color_palette, stars_palette, sizeof(stars_palette));            
-
-    nbg1_format.sbf_scroll_screen = SCRN_NBG1;                      /* Normal background */
-    nbg1_format.sbf_cc_count = SCRN_CCC_PALETTE_16;                 /* color mode to PAL16 */
-    nbg1_format.sbf_bitmap_size.width = 512;                        /* Bitmap sizes: 512x256 */
-    nbg1_format.sbf_bitmap_size.height = 256;
-    nbg1_format.sbf_bitmap_pattern = VRAM_ADDR_4MBIT(1, 0x00000);   /* Bitmap pattern lead address */
-    nbg1_format.sbf_color_palette = (uint32_t)_nbg1_color_palette;
-
-    vdp2_scrn_bitmap_format_set(&nbg1_format);
-    
-    // then set BMPNA (again) for NBG1
-    MEMORY_WRITE(16, VDP2(CRAOFA), (NBG1_VRAM_PAL_NB & 0x7) << 4); 
-    //bmpma = MEMORY_READ(16, VDP2(BMPNA));
-    //bmpma &= 0x3037; 
-    //bmpma |= ((NBG1_VRAM_PAL_NB & 0x7 ) << 8);   
-    //MEMORY_WRITE(16, VDP2(BMPNA), bmpma);
-    
     // set priority for NB1 to be backward NBG0
     vdp2_priority_spn_set(SCRN_NBG1, 6);        
     vdp2_scrn_display_set(SCRN_NBG1, /* transparent = */ true);
-    
 }
 
 void startDisplay(void)
@@ -263,25 +252,44 @@ static void timer0_handler(irq_mux_handle_t *irq_mux __unused)
 void reflection_init(void)
 {
 	hardware_init();
-    initScrollScreenNBG0();
-    initScrollScreenNBG1();
+    set_backscreen();
+    set_linescroll_NBG0();
+    set_NBG1();
     startDisplay();    
+    
+    g_timer = -255; 
 }
 
-void reflection_update(uint32_t timer)
+void reflection_update(uint32_t timer __unused)
 {
+    // fade in background to 0
+    if(g_timer <= -5)
+    {   
+        g_timer += 5;        
+        MEMORY_WRITE(16, VDP2(COBR), g_timer);
+        MEMORY_WRITE(16, VDP2(COBB), g_timer);
+        MEMORY_WRITE(16, VDP2(COBG), g_timer);      
+    } 
+    else   
+    {
+        MEMORY_WRITE(16, VDP2(COBR), 0);
+        MEMORY_WRITE(16, VDP2(COBB), 0);
+        MEMORY_WRITE(16, VDP2(COBG), 0);       
+    }
+    
+    
     // apply sinus on reflection
-    timer++; // I don't understand this error: unused parameter 'timer' [-Werror=unused-parameter]
     g_ofs += 4;
     g_counterY += g_incrY;
     
     if(g_counterY >= 239) g_incrY=-2;            
     else if(g_counterY <= 0) g_incrY=2;  
-    if(g_counterX > 320)  g_counterX = 0;          
+    if(g_counterX > 320)  g_counterX = 0;      
+
 }
 
 void reflection_draw(void)
-{
+{   
     // apply sinus on reflection
     uint16_t y;
     
@@ -291,7 +299,7 @@ void reflection_draw(void)
         //line_scroll_tb[2*184+(2*y+1)]  = (184-(2*y)) << 16;                          // set vertical line value, same value
     }   
     
-    // vertical scroll of NBG0
+    // vertical scroll of NBG0 
     vdp2_scrn_scv_y_set(SCRN_NBG0, lut[g_counterY] >> 3, 0);
     
     //vdp2_scrn_scv_x_set(SCRN_NBG1, counterX++, 0);
@@ -304,5 +312,6 @@ void reflection_exit(void)
     g_ofs = 0;
     g_counterX = 0;
     g_counterY = 0;
-    g_incrY = +2;    
+    g_incrY = +2;   
+    g_timer = -255; 
 }
