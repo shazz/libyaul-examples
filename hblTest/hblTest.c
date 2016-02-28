@@ -122,25 +122,24 @@ int main(void)
 	/* Main loop */
 	for(;;)
 	{
+        // during display 
+        /* VBL count, Frames displayed count <= VBL, HBL count, Timer 0 counter and compare,  Timer 1 counter and count down value */
+		(void)sprintf(buf, "[06;2HVBL: %08lu[07;2HFDL: %08lu DLT : %03lu[08;2HHBL: %08lu[09;2HT0 : %08lu CMP : %04u[10;2HT1 : %08lu CNT : %03d", 
+                            g_frame_counter, g_frames_displayed_counter, (g_frame_counter-g_frames_displayed_counter), g_hblank_handler_counter, g_timer0_handler_counter, 
+                            g_timer0_handler_compare, g_timer1_handler_counter, TIMER_T1_COUNTDOWN);          
+        g_frames_displayed_counter++;   
+        
+        cons_buffer(&cons, buf);  
+      
 		// end of display
 	  	vdp2_tvmd_vblank_in_wait();
-	  	g_frames_displayed_counter++;
+	  	
+        cons_flush(&cons);
 
-		(void)sprintf(buf, "[06;2HVBL : %08lu", g_frame_counter);  /* VBL count */
-		cons_write(&cons, buf);
-		(void)sprintf(buf, "[07;2HFDL: %08lu", g_frames_displayed_counter); /* Frames displayed count <= VBL */
-		cons_write(&cons, buf);
-		(void)sprintf(buf, "[08;2HHBL: %08lu", g_hblank_handler_counter); /* HBL count */
-		cons_write(&cons, buf);
-		(void)sprintf(buf, "[09;2HT0 : %08lu CMP : %04u", g_timer0_handler_counter, g_timer0_handler_compare); /* Timer 0 counter and compare */
-		cons_write(&cons, buf);
-		(void)sprintf(buf, "[10;2HT1 : %08lu CNT : %03d", g_timer1_handler_counter, TIMER_T1_COUNTDOWN); /* Timer 1 counter and count down value */
-		cons_write(&cons, buf);
-
-	  	cons_flush(&cons);
-
-	  	// end of display
+	  	// start of display
 		vdp2_tvmd_vblank_out_wait();
+    
+
 	}
 
 	return 0;
