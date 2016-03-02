@@ -61,7 +61,7 @@ int main(void)
 
         sequencer_initialize();
 
-        sequencer_register("logo", 116, logo_init, logo_update, logo_draw, logo_exit);
+        sequencer_register("intro", 80, intro_init, intro_update, intro_draw, intro_exit);
         sequencer_register("reflection", 90000, reflection_init, reflection_update, reflection_draw, reflection_exit);
 
         sequencer_start();

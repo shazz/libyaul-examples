@@ -8,10 +8,10 @@
 #ifndef SCENES_H
 #define SCENES_H
 
-void logo_init(void);
-void logo_update(uint32_t timer);
-void logo_draw(void);
-void logo_exit(void);
+void intro_init(void);
+void intro_update(uint32_t timer);
+void intro_draw(void);
+void intro_exit(void);
 
 void reflection_init(void);
 void reflection_update(uint32_t timer);
