@@ -12,6 +12,13 @@
 
 #include <yaul.h>
 
+typedef struct
+{
+	size_t len;
+	void *dst;
+	const void *src;
+} __packed  tbl;	
+
 static struct 
 {
         bool st_begin;
@@ -73,7 +80,7 @@ int main(void)
         irq_mux_t *hblank_out;
         
         unsigned int joyR = 0, oldjoyR = 0, joyL = 0,  oldjoyL = 0, joyA = 0, oldjoyA = 0, joyB = 0, oldjoyB = 0, joyC = 0, oldjoyC = 0;
-        unsigned int joyY = 0, oldjoyY = 0, joyZ = 0, oldjoyZ = 0, joyStart = 0, oldjoyStart = 0, joyUp = 0, oldjoyUp = 0, joyDown = 0, oldjoyDown = 0;    
+        unsigned int joyLeft = 0, oldjoyLeft = 0, joyRight = 0, oldjoyRight = 0, joyStart = 0, oldjoyStart = 0, joyUp = 0, oldjoyUp = 0, joyDown = 0, oldjoyDown = 0;    
 
         static uint16_t back_screen_color[] = { COLOR_RGB_DATA | COLOR_RGB555(0, 7, 7) };
 
@@ -113,7 +120,7 @@ int main(void)
         while (true) 
         {
             
-                (void)sprintf(  consbuf, "[01;2H*** SCU DMA from H-RAM to VDP1 ***[02;2HRelease Start to run[03;2HTo configure press:[04;2HA/B/C : SCU DMA Level 0/1/2[05;2HL/R : Mode Direct/Indirect[06;2HDown/Up/Y/Z : Manual/VBI/VBO/HBL[08;2HLevel %d State %d Mode %d Trig %d[11;2HLast exec time: %08lu HBL", 
+                (void)sprintf(  consbuf, "[01;2H*** SCU DMA from H-RAM to VDP1 ***[02;2HRelease Start to run[03;2HTo configure press:[04;2HA/B/C: SCU DMA Level 0/1/2[05;2HL/R: Mode Direct/Indirect[06;2HDown/Up/Left/Right: VBO/VBI/HBL/Bit[08;2HLevel %d State %d Mode %d Trig %d[11;2HLast exec time: %08lu HBL", 
                 level, state.st_status, state.st_level[level].level_mode, state.st_level[level].level_sf, g_dma_counter);   
                 cons_buffer(&cons, consbuf);               
             
@@ -135,8 +142,8 @@ int main(void)
                             joyC = g_digital.pressed.button.c;
                             joyUp = g_digital.pressed.button.up;
                             joyDown = g_digital.pressed.button.down;
-                            joyY = g_digital.pressed.button.y;                            
-                            joyZ = g_digital.pressed.button.z;
+                            joyRight = g_digital.pressed.button.right;                            
+                            joyLeft = g_digital.pressed.button.left;
                             
                             if(joyA & !oldjoyA)
                                     level = DMA_LEVEL_0;
@@ -150,11 +157,11 @@ int main(void)
                                     state.st_level[level].level_mode = DMA_MODE_INDIRECT;
                             else if (joyUp & !oldjoyUp)
                                     state.st_level[level].level_sf = DMA_MODE_START_FACTOR_VBLANK_IN;
-                            else if (joyY & !oldjoyY)
-                                    state.st_level[level].level_sf = DMA_MODE_START_FACTOR_VBLANK_OUT;
-                            else if (joyZ & !oldjoyZ)
-                                    state.st_level[level].level_sf = DMA_MODE_START_FACTOR_HBLANK_IN;
                             else if (joyDown & !oldjoyDown)
+                                    state.st_level[level].level_sf = DMA_MODE_START_FACTOR_VBLANK_OUT;
+                            else if (joyLeft & !oldjoyLeft)
+                                    state.st_level[level].level_sf = DMA_MODE_START_FACTOR_HBLANK_IN;
+                            else if (joyRight & !oldjoyRight)
                                     state.st_level[level].level_sf = DMA_MODE_START_FACTOR_ENABLE;       
 
                             if (joyStart & !oldjoyStart) 
@@ -175,8 +182,8 @@ int main(void)
                             oldjoyC = joyC;
                             oldjoyUp = joyUp;
                             oldjoyDown = joyDown;
-                            oldjoyY = joyY;
-                            oldjoyZ = joyZ; 
+                            oldjoyLeft = joyLeft;
+                            oldjoyRight = joyRight; 
                             oldjoyStart = joyStart;
                             
                         }
@@ -203,24 +210,66 @@ int main(void)
 
 static void scu_dma_level(int level __unused)
 {
-        struct dma_level_cfg cfg;
+	struct dma_level_cfg cfg;
 
-        cfg.mode.direct.src = (void *)0x06040000;   // High work RAM
-        cfg.mode.direct.dst = (void *)0x05C00000;   //VDP1
-        
-        if(level == DMA_LEVEL_0)
-            cfg.mode.direct.len = 0x100000-1;
-        else 
-            cfg.mode.direct.len = 0x1000-1;
-  
+		if(state.st_level[level].level_mode == DMA_MODE_DIRECT)
+		{
+			cfg.mode.direct.src = (void *)0x06040000;   // High work RAM
+			cfg.mode.direct.dst = (void *)0x05C00000;   //VDP1
+			
+			if(level == DMA_LEVEL_0)
+				cfg.mode.direct.len = 0x100000-1;
+			else 
+				cfg.mode.direct.len = 0x1000-1;			
+        }
+		else
+		{
+			// in this case in the temporary buffer the list of src/dest/len should be defined as uint32
+			cfg.mode.indirect.nelems	= 3;
+					
+			tbl table[] = 		
+			{
+				{
+					.len = 0x1000-1,
+					.dst = (void *)0x06040000,
+					.src = (const void *)0x05C00000
+				}, 	
+				{
+					.len = 0x1000-1,
+					.dst = (void *)0x06041000,
+					.src = (const void *)0x05C01000
+				}, 	
+				{
+					.len = 0x1000-1,
+					.dst = (void *)0x06042000,
+					.src = (const void *)0x05C02000
+				} 					
+			};
+
+			cfg.mode.indirect.tbl = (void *) table;						
+
+		}
+		
+
+		// generic parameters
         cfg.starting_factor = state.st_level[level].level_sf;
-        cfg.add = 3;    // sattech, need to be 001
+        cfg.add = 3;    														// sattech, need to be 001
+		cfg.update = DMA_MODE_UPDATE_RUP | DMA_MODE_UPDATE_WUP; 	// update Read and Write addr each time, no save
+		
+		g_dma_counter = 0;
 
-        scu_dma_cpu_level_set(level, state.st_level[level].level_mode, &cfg);
-        
-        g_dma_counter = 0;
-        g_counting = true;
-        scu_dma_cpu_level_start(level); // needed for all triggers ?
+		if(state.st_level[level].level_sf == DMA_MODE_START_FACTOR_ENABLE)
+		{
+			scu_dma_cpu_level_set(level, state.st_level[level].level_mode, &cfg);
+			scu_dma_cpu_level_start(level); // only needed for this starting factor
+			g_counting = true;				
+		}
+		else
+		{		
+			scu_dma_cpu_level_set(level, state.st_level[level].level_mode, &cfg);
+			g_counting = true;					
+		}
+		 
 }
 
 static void scu_dma_illegal(void)
