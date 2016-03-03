@@ -201,13 +201,12 @@ int main(void)
         return 0;
 }
 
-
 static void scu_dma_level(int level __unused)
 {
         struct dma_level_cfg cfg;
 
-        cfg.mode.direct.src = (void *)0x06040000;
-        cfg.mode.direct.dst = (void *)0x05C00000;
+        cfg.mode.direct.src = (void *)0x06040000;   // High work RAM
+        cfg.mode.direct.dst = (void *)0x05C00000;   //VDP1
         
         if(level == DMA_LEVEL_0)
             cfg.mode.direct.len = 0x100000-1;
@@ -215,13 +214,13 @@ static void scu_dma_level(int level __unused)
             cfg.mode.direct.len = 0x1000-1;
   
         cfg.starting_factor = state.st_level[level].level_sf;
-        cfg.add = 3;
+        cfg.add = 3;    // sattech, need to be 001
 
         scu_dma_cpu_level_set(level, state.st_level[level].level_mode, &cfg);
         
         g_dma_counter = 0;
         g_counting = true;
-        scu_dma_cpu_level_start(level);
+        scu_dma_cpu_level_start(level); // needed for all triggers ?
 }
 
 static void scu_dma_illegal(void)
