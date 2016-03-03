@@ -4,6 +4,7 @@
 
 #include "sequencer.h"
 #include "scenes.h"
+#include "dma_wrapper.h"
 
 struct smpc_peripheral_digital g_digital;
 volatile uint32_t g_frame_counter = 0;
@@ -36,6 +37,8 @@ static void hardware_init(void)
 	/* SMPC */
 	smpc_init();
 	smpc_peripheral_init();
+	
+	dma_init(DMA_LEVEL_0);
 
 	/* Disable interrupts */
 	cpu_intc_disable();
