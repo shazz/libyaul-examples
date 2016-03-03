@@ -13,6 +13,7 @@
 #include "bitmaps.h"
 #include "stars.h"
 #include "ship.h"
+#include "dma_wrapper.h"
 
 /*
  * VDP2 VRAM Organization
@@ -100,8 +101,12 @@ void _intro_init_scrollscreen_nbg0(void)
     uint16_t bmpma;    
     
     /* Copy the NBG0 bitmap, BGR555 palette data */
-    memcpy(_nbg0_bitmap_data, bitmap_data, sizeof(bitmap_data));   
-    memcpy(_nbg0_color_palette, bitmap_palette, sizeof(bitmap_palette));            
+    //memcpy(_nbg0_bitmap_data, bitmap_data, sizeof(bitmap_data));   
+	dma_async_memcpy(_nbg0_bitmap_data, bitmap_data, sizeof(bitmap_data));   
+
+
+	//memcpy(_nbg0_color_palette, bitmap_palette, sizeof(bitmap_palette));            
+	dma_async_memcpy(_nbg0_color_palette, bitmap_palette, sizeof(bitmap_palette));            
 
     nbg0_format.sbf_scroll_screen = SCRN_NBG0;                      /* Normal background */
     nbg0_format.sbf_cc_count = SCRN_CCC_PALETTE_16;                 /* color mode to PAL16 */
@@ -155,10 +160,10 @@ void _intro_init_scrollscreen_nbg1(void)
 	vdp2_scrn_cell_format_set(&nbg1_format);
 
     /* Copy the palette data */
-    memcpy(_nbg1_color_palette, ship_cell_palette, sizeof(ship_cell_palette));
+    dma_async_memcpy(_nbg1_color_palette, ship_cell_palette, sizeof(ship_cell_palette));
     
     /* Copy the cell data */
-    memcpy(_nbg1_cell_data, ship_cell_data, sizeof(ship_cell_data));
+    dma_async_memcpy(_nbg1_cell_data, ship_cell_data, sizeof(ship_cell_data));
 
     /* Build the pattern data */   
     uint32_t i;
@@ -205,10 +210,10 @@ void _intro_init_scrollscreen_nbg2(void)
 	vdp2_scrn_cell_format_set(&nbg2_format);
 
     /* Copy the palette data */
-    memcpy(_nbg2_color_palette, stars_cell_palette, sizeof(stars_cell_palette));
+    dma_async_memcpy(_nbg2_color_palette, stars_cell_palette, sizeof(stars_cell_palette));
 
     /* Copy the cell data */
-    memcpy(_nbg2_cell_data, stars_cell_data, sizeof(stars_cell_data));
+    dma_async_memcpy(_nbg2_cell_data, stars_cell_data, sizeof(stars_cell_data));
 
     /* Build the pattern data */   
     uint32_t i;

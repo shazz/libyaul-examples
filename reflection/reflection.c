@@ -29,8 +29,9 @@
  * - Linescroll table, from 0x1E0 to 0x10E0 (4*4*240 bytes (0xF00))
  * 
  * CRAM
- * - NBG0 palette set at palette 0 (0x0)
- * - NBG3 palette set at palette 2 (0x2)
+ * - NBG0 palette set at palette 2
+ * - NBG1 palette set at palette 0
+ * - NBG2 palette set at palette 1
  * 
  * Registers:
  * - TVMD: enable display, border color mode to back screen, 240 lines vertical resolution
