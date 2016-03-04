@@ -133,7 +133,7 @@ void _intro_init_scrollscreen_nbg0(void)
     memcpy(_nbg0_color_palette, mjjprod_cell_palette, sizeof(mjjprod_cell_palette));
     
     /* Copy the cell data */
-    dma_async_memcpy(_nbg0_cell_data, mjjprod_cell_data, sizeof(mjjprod_cell_data));
+    scu_dma_async_memcpy(_nbg0_cell_data, mjjprod_cell_data, sizeof(mjjprod_cell_data));
 
     /* Build the pattern data */   
     uint32_t i;
@@ -205,7 +205,7 @@ void _intro_init_scrollscreen_nbg1(void)
     memcpy(_nbg1_color_palette, ship_cell_palette, sizeof(ship_cell_palette));
     
     /* Copy the cell data */
-    dma_async_memcpy(_nbg1_cell_data, ship_cell_data, sizeof(ship_cell_data));
+    scu_dma_async_memcpy(_nbg1_cell_data, ship_cell_data, sizeof(ship_cell_data));
 
     /* Build the pattern data */   
     uint32_t i;
@@ -255,7 +255,7 @@ void _intro_init_scrollscreen_nbg2(void)
     memcpy(_nbg2_color_palette, stars_cell_palette, sizeof(stars_cell_palette));  
 
     /* Copy the cell data  */
-    dma_async_memcpy(_nbg2_cell_data, stars_cell_data, sizeof(stars_cell_data));
+    scu_dma_async_memcpy(_nbg2_cell_data, stars_cell_data, sizeof(stars_cell_data));
 
     /* Build the pattern data */   
     uint32_t i;
@@ -338,7 +338,6 @@ void intro_init(void)
     vdp2_tvmd_display_clear();    
         
     /* set 320x240 res */
-    vdp2_tvmd_display_clear();
     tvmd = MEMORY_READ(16, VDP2(TVMD));
     tvmd |= ((1 << 8) | (1 << 4));  // set BDCLMD,  VRES0 to 1
     MEMORY_WRITE(16, VDP2(TVMD), 0x8110);    

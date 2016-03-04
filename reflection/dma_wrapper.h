@@ -13,19 +13,24 @@ extern "C" {
 #endif /* __cplusplus */
 
 /*
- * Init SCU DMA, interrupt handlers and DMA level
+ * Init SCU DMA, interrupt handlers
  */
-void dma_init(enum dma_level lvl);
+void scu_dma_init();
 
 /*
  * Start a SCU DMA Transfer, direct mode, asynchronously
  */
-void *dma_async_memcpy(void *dest, const void *src, size_t n);
+void *scu_dma_async_memcpy(void *dest, const void *src, size_t n);
 
 /*
  * Start a SCU DMA Transfer, direct mode, synchronously (wait for end/illegal interrupt)
  */
-void *dma_sync_memcpy(void *dest, const void *src, size_t n);
+void *scu_dma_sync_memcpy(void *dest, const void *src, size_t n);
+
+/*
+ * Get SCU DMA status
+ */ 
+int scu_dma_get_status(void);
 
 #ifdef __cplusplus
 }
