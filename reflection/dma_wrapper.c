@@ -13,10 +13,11 @@ static void scu_dma_level_0_end(void);
 static void scu_dma_level_1_end(void);
 static void scu_dma_level_2_end(void);
 
-#define DMA_STATUS_WAIT          0
-#define DMA_STATUS_END           1
-#define DMA_STATUS_ILLEGAL       2
-static int g_dma_transfer_status;
+#define DMA_STATUS_IDLE             0
+#define DMA_STATUS_WAIT             1
+#define DMA_STATUS_END              2
+#define DMA_STATUS_ILLEGAL          3
+static int g_dma_transfer_status = DMA_STATUS_IDLE;
 static enum dma_level dma_level;
 	
 /*
@@ -42,6 +43,7 @@ void dma_init(enum dma_level lvl)
 	cpu_intc_enable();	
 	
 	dma_level = lvl;
+    g_dma_transfer_status = DMA_STATUS_IDLE;
 }
 
 /*
@@ -50,6 +52,9 @@ void dma_init(enum dma_level lvl)
 void *dma_async_memcpy(void *dest, const void *src, size_t n)
 {
 	struct dma_level_cfg cfg;
+    
+    if(g_dma_transfer_status == DMA_STATUS_WAIT)
+        return NULL;    
 
 	cfg.mode.direct.src = src; 
 	cfg.mode.direct.dst = dest;  
@@ -59,6 +64,8 @@ void *dma_async_memcpy(void *dest, const void *src, size_t n)
 	cfg.add = 3;    		// sattech, need to be 001
 
 	scu_dma_cpu_level_set(dma_level, DMA_MODE_DIRECT, &cfg);
+    
+    g_dma_transfer_status = DMA_STATUS_WAIT;
 	scu_dma_cpu_level_start(DMA_MODE_DIRECT); 	
 	
 	return dest;
@@ -71,7 +78,8 @@ void *dma_sync_memcpy(void *dest, const void *src, size_t n)
 {
 	struct dma_level_cfg cfg;
 
-	g_dma_transfer_status = DMA_STATUS_WAIT;
+    if(g_dma_transfer_status == DMA_STATUS_WAIT)
+        return NULL;  
 	
 	cfg.mode.direct.src = src; 
 	cfg.mode.direct.dst = dest;  
@@ -81,13 +89,13 @@ void *dma_sync_memcpy(void *dest, const void *src, size_t n)
 	cfg.add = 3;    		// sattech, need to be 001
 
 	scu_dma_cpu_level_set(dma_level, DMA_MODE_DIRECT, &cfg);
+    g_dma_transfer_status = DMA_STATUS_WAIT;
 	scu_dma_cpu_level_start(DMA_MODE_DIRECT); 
 	
 	while(g_dma_transfer_status == DMA_STATUS_WAIT)
 	{
-		// maybe a timeout would be nice to avoid hangling the CPU...
+		// maybe a timeout would be nice to avoid hanging the CPU...
 	}
-	g_dma_transfer_status = DMA_STATUS_WAIT;
 	
 	return dest;
 }
