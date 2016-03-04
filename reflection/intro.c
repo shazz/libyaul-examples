@@ -101,8 +101,7 @@ void _intro_init_scrollscreen_nbg0(void)
     uint16_t bmpma;    
     
     /* Copy the NBG0 bitmap, BGR555 palette data */
-	//memcpy(_nbg0_color_palette, bitmap_palette, sizeof(bitmap_palette));            
-	dma_async_memcpy(_nbg0_color_palette, bitmap_palette, sizeof(bitmap_palette));   
+	memcpy(_nbg0_color_palette, bitmap_palette, sizeof(bitmap_palette));            
     
     //memcpy(_nbg0_bitmap_data, bitmap_data, sizeof(bitmap_data));   
 	dma_async_memcpy(_nbg0_bitmap_data, bitmap_data, sizeof(bitmap_data));   
@@ -160,10 +159,8 @@ void _intro_init_scrollscreen_nbg1(void)
 
     /* Copy the palette data */
     memcpy(_nbg1_color_palette, ship_cell_palette, sizeof(ship_cell_palette));
-    //dma_async_memcpy(_nbg1_color_palette, ship_cell_palette, sizeof(ship_cell_palette));
     
     /* Copy the cell data */
-    //memcpy(_nbg1_cell_data, ship_cell_data, sizeof(ship_cell_data));
     dma_async_memcpy(_nbg1_cell_data, ship_cell_data, sizeof(ship_cell_data));
 
     /* Build the pattern data */   
@@ -212,10 +209,8 @@ void _intro_init_scrollscreen_nbg2(void)
 
     /* Copy the palette data */
     memcpy(_nbg2_color_palette, stars_cell_palette, sizeof(stars_cell_palette));  
-    //dma_async_memcpy(_nbg2_color_palette, stars_cell_palette, sizeof(stars_cell_palette));
 
     /* Copy the cell data */
-    //memcpy(_nbg2_cell_data, stars_cell_data, sizeof(stars_cell_data));    
     dma_async_memcpy(_nbg2_cell_data, stars_cell_data, sizeof(stars_cell_data));
 
     /* Build the pattern data */   
