@@ -18,7 +18,6 @@
 /*
  * VDP2 VRAM Organization
  * Bank A0
- * //- NBG0 bitmap data, from 0x0 to 0x0FFFF (4*16384 bytes)
  * - NBG0 plane data, from 0x0 to 0x01000 (4096 bytes, 1 word per cell, 512x256px)
  * - NBG0 cell pattern data, from 0x01000 to 0x07000 (8416 bytes, 263 8x8 cells in 4bits color)* 
  * 
@@ -80,7 +79,6 @@ static uint16_t *_nbg2_planes[4] = {
 }; // a plane needs 2048 u16 (512x256) or 0x1000 bytes (4096)
 
 /* VRAM A0 after plane  */
-//static uint32_t *_nbg0_bitmap_data = (uint32_t *)VRAM_ADDR_4MBIT(0, 0x0000);
 static uint32_t *_nbg0_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(0, 0x1000);
 static uint16_t _nbg0_cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)VRAM_ADDR_4MBIT(0, 0x1000));
 
@@ -110,9 +108,7 @@ static int16_t  g_timer3;
  */
 void _intro_init_scrollscreen_nbg0(void)
 {
-    //struct scrn_bitmap_format nbg0_format;
     struct scrn_cell_format nbg0_format;
-    //uint16_t bmpma;    
     
 	nbg0_format.scf_scroll_screen = SCRN_NBG0;
 	nbg0_format.scf_cc_count = SCRN_CCC_PALETTE_16;
@@ -146,31 +142,6 @@ void _intro_init_scrollscreen_nbg0(void)
 
 	vdp2_priority_spn_set(SCRN_NBG0, 7);
     vdp2_scrn_display_set(SCRN_NBG0, /* transparent = */ true);    
-    
-    /* Copy the NBG0 bitmap, BGR555 palette data */
-	//memcpy(_nbg0_color_palette, bitmap_palette, sizeof(bitmap_palette));            
-    
-    //memcpy(_nbg0_bitmap_data, bitmap_data, sizeof(bitmap_data));   
-    //dma_async_memcpy(_nbg0_bitmap_data, bitmap_data, sizeof(bitmap_data));   
-
-    //nbg0_format.sbf_scroll_screen = SCRN_NBG0;                      /* Normal background */
-    //nbg0_format.sbf_cc_count = SCRN_CCC_PALETTE_16;                 /* color mode to PAL16 */
-    //nbg0_format.sbf_bitmap_size.width = 512;                        /* Bitmap sizes: 512x256 */
-    //nbg0_format.sbf_bitmap_size.height = 256;
-    //nbg0_format.sbf_bitmap_pattern = (uint32_t)_nbg0_bitmap_data;   /* Bitmap pattern lead address */
-    //nbg0_format.sbf_color_palette = (uint32_t)_nbg0_color_palette;
-
-    //vdp2_scrn_bitmap_format_set(&nbg0_format);
-    
-    // then set BMPNA for NBG0
-    //bmpma = MEMORY_READ(16, VDP2(BMPNA));
-    //bmpma |= ((NBG0_VRAM_PAL_NB & 0x7 ) << 0);
-    //MEMORY_WRITE(16, VDP2(BMPNA), bmpma);        
-    
-    // set max priority for NBG0 and transparent color
-    //vdp2_priority_spn_set(SCRN_NBG0, 7);   
-    
-   // vdp2_scrn_display_set(SCRN_NBG0, /* transparent = */ true);      
 }
 
 /*
@@ -179,9 +150,6 @@ void _intro_init_scrollscreen_nbg0(void)
 void _intro_init_scrollscreen_nbg1(void)
 {
 	/* NBG1 stuff is located in A1 bank */
-
-    /* We want to be in VBLANK */
-    //vdp2_tvmd_display_clear();
 
     /* set NBG1 in cell mode, 16 col, 1x1 */
     struct scrn_cell_format nbg1_format;
@@ -227,14 +195,8 @@ void _intro_init_scrollscreen_nbg2(void)
 {
 	/* NBG2 stuff is located in B0 bank */
 
-    /* We want to be in VBLANK */
-    //vdp2_tvmd_display_clear();
-
     /* set NBG2 in cell mode, 16 col, 1x1 */
     struct scrn_cell_format nbg2_format;
-
-    /* We want to be in VBLANK-IN (retrace) */
-    //vdp2_tvmd_display_clear();
 
 	nbg2_format.scf_scroll_screen = SCRN_NBG2;
 	nbg2_format.scf_cc_count = SCRN_CCC_PALETTE_16;
@@ -282,9 +244,13 @@ void _intro_set_VRAM_access(void)
     // 16 colors bitmap requires 1 access each
     vram_ctl = vdp2_vram_control_get();
 	
+    // Rules:
+    // only 2 PNDR per timing and split accros x0 and x1 banks
+    // CHPNDR cannot be acceded during certain cycles after PNDR
+    
 	// Bank A0, 16 colors bitmap requires 1 access each
-    vram_ctl->vram_cycp.pt[0].t7 = VRAM_CTL_CYCP_CHPNDR_NBG0; 	// NBG0 character pattern or bitmap data read
-    vram_ctl->vram_cycp.pt[0].t6 = VRAM_CTL_CYCP_PNDR_NBG0; 
+    vram_ctl->vram_cycp.pt[0].t7 = VRAM_CTL_CYCP_PNDR_NBG0; 	// NBG0 character pattern or bitmap data read
+    vram_ctl->vram_cycp.pt[0].t6 = VRAM_CTL_CYCP_CHPNDR_NBG0; 
     vram_ctl->vram_cycp.pt[0].t5 = VRAM_CTL_CYCP_NO_ACCESS; 
     vram_ctl->vram_cycp.pt[0].t4 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[0].t3 = VRAM_CTL_CYCP_NO_ACCESS;
@@ -293,10 +259,10 @@ void _intro_set_VRAM_access(void)
     vram_ctl->vram_cycp.pt[0].t0 = VRAM_CTL_CYCP_NO_ACCESS;
 
 	// Bank A1
-    vram_ctl->vram_cycp.pt[1].t7 = VRAM_CTL_CYCP_NO_ACCESS; 	// NBG1 character pattern or bitmap data read
-    vram_ctl->vram_cycp.pt[1].t6 = VRAM_CTL_CYCP_NO_ACCESS;     // NBG1 pattern name data read
-    vram_ctl->vram_cycp.pt[1].t5 = VRAM_CTL_CYCP_PNDR_NBG1;
-    vram_ctl->vram_cycp.pt[1].t4 = VRAM_CTL_CYCP_CHPNDR_NBG1;
+    vram_ctl->vram_cycp.pt[1].t7 = VRAM_CTL_CYCP_PNDR_NBG1; 	// NBG1 character pattern or bitmap data read
+    vram_ctl->vram_cycp.pt[1].t6 = VRAM_CTL_CYCP_CHPNDR_NBG1;     // NBG1 pattern name data read
+    vram_ctl->vram_cycp.pt[1].t5 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[1].t4 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[1].t3 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[1].t2 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[1].t1 = VRAM_CTL_CYCP_NO_ACCESS;
@@ -304,9 +270,9 @@ void _intro_set_VRAM_access(void)
 	
 	// Bank B0
     vram_ctl->vram_cycp.pt[2].t7 = VRAM_CTL_CYCP_NO_ACCESS; 	// NBG2 character pattern data read
-    vram_ctl->vram_cycp.pt[2].t6 = VRAM_CTL_CYCP_NO_ACCESS; 	// NBG2 pattern name data read
+    vram_ctl->vram_cycp.pt[2].t6 = VRAM_CTL_CYCP_PNDR_NBG2; 	// NBG2 pattern name data read
     vram_ctl->vram_cycp.pt[2].t5 = VRAM_CTL_CYCP_CHPNDR_NBG2;
-    vram_ctl->vram_cycp.pt[2].t4 = VRAM_CTL_CYCP_PNDR_NBG2;
+    vram_ctl->vram_cycp.pt[2].t4 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[2].t3 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[2].t2 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[2].t1 = VRAM_CTL_CYCP_NO_ACCESS;
@@ -338,6 +304,7 @@ void intro_init(void)
     vdp2_tvmd_display_clear();    
         
     /* set 320x240 res */
+    vdp2_tvmd_display_clear();
     tvmd = MEMORY_READ(16, VDP2(TVMD));
     tvmd |= ((1 << 8) | (1 << 4));  // set BDCLMD,  VRES0 to 1
     MEMORY_WRITE(16, VDP2(TVMD), 0x8110);    

@@ -53,8 +53,10 @@ static void hardware_init(void)
 	cpu_intc_enable();
     
     /* Set screen to black */
-    static uint16_t back_screen_color[] = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
-	vdp2_scrn_back_screen_set(/* single_color = */ true, VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color, 1);
+    static uint16_t back_screen_color = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
+	vdp2_scrn_back_screen_color_set(VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color);
+    //static uint16_t back_screen_color[] = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
+	//vdp2_scrn_back_screen_set(/* single_color = */ true, VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color, 1);    
 }
 
 
@@ -77,6 +79,11 @@ int main(void)
                 sequencer_draw();                   /* draw stuff, better during VBL ? */
                 
                 vdp2_tvmd_vblank_out_wait();        /* VBL End, beginning of display */
+                
+                if (g_digital.connected == 1)
+                {
+                     if(g_digital.pressed.button.start) break;
+                }          
         }
         
         sequencer_exit();
