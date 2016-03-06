@@ -12,6 +12,18 @@
 extern "C" {
 #endif /* __cplusplus */
 
+#define SCU_DMA_END_CODE (1 << 31)
+
+#define SCU_DMA_STATUS_IDLE             0
+#define SCU_DMA_STATUS_WAIT             1
+#define SCU_DMA_STATUS_END              2
+#define SCU_DMA_STATUS_ILLEGAL          3
+
+#define SCU_DMA_CH0                    0
+#define SCU_DMA_CH1                    1
+#define SCU_DMA_CH2                    2
+#define SCU_DMA_ALL_CH                 3
+
 /*
  * Init SCU DMA, interrupt handlers
  */
@@ -28,9 +40,14 @@ void *scu_dma_async_memcpy(void *dest, const void *src, size_t n);
 void *scu_dma_sync_memcpy(void *dest, const void *src, size_t n);
 
 /*
+ * Start a SCU DMA Transfer, indirect mode, asynchronously
+ */
+void scu_dma_listcpy(uint32_t * table);
+
+/*
  * Get SCU DMA status
  */ 
-int scu_dma_get_status(void);
+uint8_t scu_dma_get_status(uint8_t channel);
 
 #ifdef __cplusplus
 }

@@ -126,10 +126,7 @@ void _intro_init_scrollscreen_nbg0(void)
 	vdp2_scrn_cell_format_set(&nbg0_format);
 
     /* Copy the palette data */
-    memcpy(_nbg0_color_palette, mjjprod_cell_palette, sizeof(mjjprod_cell_palette));
-    
-    /* Copy the cell data */
-    scu_dma_async_memcpy(_nbg0_cell_data, mjjprod_cell_data, sizeof(mjjprod_cell_data));
+    //scu_dma_sync_memcpy(_nbg0_color_palette, mjjprod_cell_palette, sizeof(mjjprod_cell_palette));
 
     /* Build the pattern data */   
     uint32_t i;
@@ -170,10 +167,10 @@ void _intro_init_scrollscreen_nbg1(void)
 	vdp2_scrn_cell_format_set(&nbg1_format);
 
     /* Copy the palette data */
-    memcpy(_nbg1_color_palette, ship_cell_palette, sizeof(ship_cell_palette));
+    //scu_dma_sync_memcpy(_nbg1_color_palette, ship_cell_palette, sizeof(ship_cell_palette));
     
     /* Copy the cell data */
-    scu_dma_async_memcpy(_nbg1_cell_data, ship_cell_data, sizeof(ship_cell_data));
+    //scu_dma_sync_memcpy(_nbg1_cell_data, ship_cell_data, sizeof(ship_cell_data));
 
     /* Build the pattern data */   
     uint32_t i;
@@ -214,10 +211,7 @@ void _intro_init_scrollscreen_nbg2(void)
 	vdp2_scrn_cell_format_set(&nbg2_format);
 
     /* Copy the palette data */
-    memcpy(_nbg2_color_palette, stars_cell_palette, sizeof(stars_cell_palette));  
-
-    /* Copy the cell data  */
-    scu_dma_async_memcpy(_nbg2_cell_data, stars_cell_data, sizeof(stars_cell_data));
+    //scu_dma_sync_memcpy(_nbg2_color_palette, stars_cell_palette, sizeof(stars_cell_palette));  
 
     /* Build the pattern data */   
     uint32_t i;
@@ -291,7 +285,6 @@ void _intro_set_VRAM_access(void)
     vdp2_vram_control_set(vram_ctl);   
 }
 
-
 /*
  * Public Functions 
  * 
@@ -326,6 +319,18 @@ void intro_init(void)
 	MEMORY_WRITE(16, VDP2(COBR), -255);
 	MEMORY_WRITE(16, VDP2(COBB), -255);
 	MEMORY_WRITE(16, VDP2(COBG), -255);    
+    
+    /* DMA Indirect list, aligned on 64 bytes due to more than 24bytes size (6*4*3=72) */
+    uint32_t dma_tbl[] __attribute__((aligned(64))) = { 
+            (uint32_t)sizeof(mjjprod_cell_data), (uint32_t)_nbg0_cell_data, (uint32_t)mjjprod_cell_data, 
+            (uint32_t)sizeof(mjjprod_cell_palette), (uint32_t)_nbg0_color_palette, (uint32_t)mjjprod_cell_palette, 
+            (uint32_t)sizeof(ship_cell_data), (uint32_t)_nbg1_cell_data, (uint32_t)ship_cell_data, 
+            (uint32_t)sizeof(ship_cell_palette), (uint32_t)_nbg1_color_palette, (uint32_t)ship_cell_palette,             
+            (uint32_t)sizeof(stars_cell_data), (uint32_t)_nbg2_cell_data, (uint32_t)stars_cell_data,
+            (uint32_t)sizeof(stars_cell_palette), (uint32_t)_nbg2_color_palette, SCU_DMA_END_CODE | (uint32_t)stars_cell_palette             
+    };    
+    scu_dma_listcpy(dma_tbl);
+    while(scu_dma_get_status(SCU_DMA_ALL_CH) == SCU_DMA_STATUS_WAIT);
     
     /* set all other stuff */ 
     _intro_init_scrollscreen_nbg0();

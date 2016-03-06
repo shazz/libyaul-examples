@@ -38,7 +38,7 @@ static void hardware_init(void)
 	smpc_init();
 	smpc_peripheral_init();
 	
-	dma_init();
+	scu_dma_init();
 
 	/* Disable interrupts */
 	cpu_intc_disable();
