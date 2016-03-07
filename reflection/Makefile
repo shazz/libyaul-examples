@@ -15,6 +15,7 @@ IP_MASTER_STACK_ADDR:= 0x06100000
 IP_SLAVE_STACK_ADDR:= 0x00000000
 IP_1ST_READ_ADDR:= 0x06004000
 
-OBJECTS:= dma_wrapper.o sequencer.o intro.o reflection.o main.o 
+LIBRARIES:= langam
+OBJECTS:= intro.o reflection.o main.o 
 
 include $(INSTALL_ROOT)/share/yaul/post.common.mk

@@ -1,10 +1,11 @@
 #include <yaul.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <langam/dma_wrapper.h>
+#include <langam/sequencer.h>
 
-#include "sequencer.h"
 #include "scenes.h"
-#include "dma_wrapper.h"
+
 
 struct smpc_peripheral_digital g_digital;
 volatile uint32_t g_frame_counter = 0;

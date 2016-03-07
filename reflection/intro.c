@@ -6,14 +6,15 @@
  */
 
 #include <yaul.h>
+#include <langam/dma_wrapper.h>
+#include <langam/sequencer.h>
 
-#include "sequencer.h"
 #include "scenes.h"
 #include "tables.h"
 #include "mjjprod.h"
 #include "stars.h"
 #include "ship.h"
-#include "dma_wrapper.h"
+
 
 /*
  * VDP2 VRAM Organization
