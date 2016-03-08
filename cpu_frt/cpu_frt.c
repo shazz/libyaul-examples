@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <yaul.h>
+#include <fixmath.h>
 #include <langam/tim_frt_wrapper.h>
 
 static char * consbuf;
@@ -20,23 +21,30 @@ volatile uint32_t g_dma_counter = 0;
 static uint32_t tick = 0;
 static void vblank_in_handler(irq_mux_handle_t *);
 static void vblank_out_handler(irq_mux_handle_t *);
-
+static uint16_t counter = 0; 		/* store fetched counter value here */
+static char micro_sec[13];          /* store microseconds here */
+        
 void start_test(void)
-{
-	uint32_t i;
-	for(i=0; i<500000; i++);
+{  
+    cons_buffer("[11;2HTest starting");
+    
+    vdp2_tvmd_vblank_in_wait();
+    tim_frt_set(0); 							/* set counter value to 0 */
+    vdp2_tvmd_vblank_out_wait();
+	counter = tim_frt_get(); 					/* get counter value */
+	fix16_t us = tim_frt_ticks_to_us(counter); 	/* convert counter value to microseconds */    
+    fix16_to_str(us, micro_sec, 4);
+    
+    (void)sprintf(consbuf, "[11;2HTest ended in %u ticks (%s)", counter, micro_sec);
+    cons_buffer(consbuf);
 }
 
 int main(void)
 {
         irq_mux_t *vblank_in;
         irq_mux_t *vblank_out;
-		
-		uint16_t counter = 0; 		/* store fetched counter value here */
-		float32_t micro_sec = 0; 	/* store microseconds here */
-		
-        unsigned int joyLeft = 0, oldjoyLeft = 0, joyRight = 0, oldjoyRight = 0, joyUp = 0, oldjoyUp = 0, joyDown = 0, oldjoyDown = 0;    
 
+        unsigned int joyLeft = 0, oldjoyLeft = 0, joyRight = 0, oldjoyRight = 0, joyUp = 0, oldjoyUp = 0, joyDown = 0, oldjoyDown = 0;    
         static uint16_t back_screen_color = { COLOR_RGB_DATA | COLOR_RGB555(0, 7, 7) };
 
         vdp2_init();
@@ -65,9 +73,7 @@ int main(void)
 
         while (true) 
         {
-            
-                (void)sprintf(  consbuf, "[01;2H**** CPU FRT Tests ****[04;2HPress Start to quit[05;2HTo configure press:[07;2HUp to reset counter[08;2HDown to start test[11;2HResults Value:%08u => %f us", 
-					counter, micro_sec);
+                (void)sprintf(consbuf, "[01;2H**** CPU FRT Tests ****[04;2HPress Start to quit[05;2HTo configure press:[07;2HUp to reset counter[08;2HDown to start test[10;2HResults Value: 0x%04X %s us", counter, micro_sec);
                 cons_buffer(consbuf);               
             
                 vdp2_tvmd_vblank_in_wait();
@@ -91,10 +97,7 @@ int main(void)
 					}
 					else if (joyDown & !oldjoyDown)
 					{
-						tim_frt_set(0); 							/* set counter value to 0 */
 						start_test(); 								/* execute process to be timed */
-						counter = tim_frt_get(); 					/* get counter value */
-						micro_sec = tim_frt_ticks_to_us(counter); 	/* convert counter value to microseconds */
 					}
 					else if (joyLeft & !oldjoyLeft)
 					{
