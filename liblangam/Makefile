@@ -16,11 +16,16 @@ SUB_BUILD:= $(BUILD)/lib$(TARGET)
 
 SRCS:= dma_wrapper.c \
 	sequencer.c \
-	tim_frt_wrapper.c
+	tim_frt_wrapper.c \
+	math.S \
+	math_fix.S \
+	vdp2_rbg_wrapper.c
 	
-HEADER_FILES:= dma_wrapper.h \
-	sequencer.c \
-	tim_frt_wrapper.h
+HEADER_FILES:= langam.h \
+	dma_wrapper.h \
+	sequencer.h \
+	tim_frt_wrapper.h \
+	vdp2_rbg_wrapper.h
 
 INCLUDES:= $(INSTALL_ROOT)/sh-elf/include/yaul \
     $(INSTALL_ROOT)/sh-elf/include/yaul/scu \
@@ -75,8 +80,8 @@ V_BEGIN_CYAN= [1;36m
 V_BEGIN_WHITE= [1;37m
 V_END= [m
 
-OBJS:= $(SRCS:.c=.o)
-DEPS:= $(SRCS:.c=.d)
+OBJS:= $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(SRCS)))
+DEPS:= $(SRCS:.o=.d)
 
 OBJS_release:= $(addprefix $(BUILD_ROOT)/$(SUB_BUILD)/release/,$(OBJS))
 OBJS_release-internal:= $(addprefix $(BUILD_ROOT)/$(SUB_BUILD)/release-internal/,$(OBJS))
@@ -164,12 +169,21 @@ $(BUILD_ROOT)/$(SUB_BUILD)/debug/lib$(TARGET).a: $(OBJS_debug)
 
 $(BUILD_ROOT)/$(SUB_BUILD)/release/%.o: %.c
 	$(call macro-build-object,release,$@,$*)
-
+	
+$(BUILD_ROOT)/$(SUB_BUILD)/release/%.o: %.S
+	$(call macro-build-object,release,$@,$*)
+	
 $(BUILD_ROOT)/$(SUB_BUILD)/release-internal/%.o: %.c
 	$(call macro-build-object,release-internal,$@,$*)
+	
+$(BUILD_ROOT)/$(SUB_BUILD)/release-internal/%.o: %.S
+	$(call macro-build-object,release-internal,$@,$*)	
 
 $(BUILD_ROOT)/$(SUB_BUILD)/debug/%.o: %.c
 	$(call macro-build-object,debug,$@,$*)
+	
+$(BUILD_ROOT)/$(SUB_BUILD)/debug/%.o: %.S
+	$(call macro-build-object,debug,$@,$*)	
 
 clean: clean-release clean-release-internal clean-debug
 
