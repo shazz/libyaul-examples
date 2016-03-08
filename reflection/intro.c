@@ -6,8 +6,8 @@
  */
 
 #include <yaul.h>
-#include <langam/dma_wrapper.h>
-#include <langam/sequencer.h>
+#include <langam.h>
+#include <langam.h>
 
 #include "scenes.h"
 #include "tables.h"

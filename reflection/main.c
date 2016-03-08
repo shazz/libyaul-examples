@@ -1,8 +1,8 @@
 #include <yaul.h>
 #include <stdlib.h>
 #include <inttypes.h>
-#include <langam/dma_wrapper.h>
-#include <langam/sequencer.h>
+#include <langam.h>
+#include <langam.h>
 
 #include "scenes.h"
 
