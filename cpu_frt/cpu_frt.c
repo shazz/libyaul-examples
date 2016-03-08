@@ -11,7 +11,7 @@
 #include <string.h>
 #include <yaul.h>
 #include <fixmath.h>
-#include <langam/tim_frt_wrapper.h>
+#include <langam.h>
 
 static char * consbuf;
 
