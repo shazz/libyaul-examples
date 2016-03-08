@@ -37,7 +37,6 @@ static bool isInit = false;
 static uint32_t sceneTimer = 0;
 
 #ifdef DEBUG
-struct cons cons;
 static char * consbuf;
 #endif  
  
@@ -54,7 +53,7 @@ void sequencer_initialize(void)
     }
         
 #ifdef DEBUG   
-    cons_init(&cons, CONS_DRIVER_VDP2);  
+    cons_init(CONS_DRIVER_VDP2);  
     consbuf = (char *)malloc(1024); 
 #endif       
 }
@@ -169,7 +168,7 @@ void sequencer_update(uint32_t timer)
 #ifdef DEBUG
         (void)sprintf(  consbuf, "[01;2HFrame Counter : %08lu[02;2HScene : %s[03;2HDuration : %08lu[04;2HScene timer : %08lu[05;2HPosition : %08lu", 
                         timer, current_scene->name, current_scene->duration, sceneTimer, (timer - sceneTimer));   
-        cons_buffer(&cons, consbuf);  
+        cons_buffer(consbuf);  
 #endif             
         
     }
@@ -184,7 +183,7 @@ void sequencer_draw()
 {
     current_scene->draw();
 #ifdef DEBUG      
-    cons_flush(&cons);
+    cons_flush();
 #endif     
 }
 

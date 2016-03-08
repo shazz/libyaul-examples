@@ -19,6 +19,7 @@
 #define	SMPC_MASK_DOTSEL		0x40
 #define	SBL_SMPC_MASK_DOTSEL	0x4000
 
+typedef float float32_t;
 
 /*
  * Init CPU Free Running Timer
@@ -53,26 +54,27 @@ uint16_t tim_frt_get(void)
 /*
  * Convert frt value to microseconds
  */
-float32_t tim_frt_ticks_to_us(uint16_t value)
+fix16_t tim_frt_ticks_to_us(uint16_t value)
 {
 	/*
 	 * The PLL oscillation frequency is in the 320 mode (NTSC: 26.8741 MHz, PAL: 26.6875 MHz) and the VDP1, VDP2 and SH-2 are run at this frequency.
 	 * Changed to run in 352 mode (NTSC: 28.6364 MHz, PAL: 28.4375 MHz) by the CKCHG352 command.
 	 */ 
 	
-	uint8_t tvstat_PAL_reg = (uint8_t) ((MEMORY_READ(32, VDP2(TVSTAT)) & 0x1));		// keep only PAL bit (0)
+	uint16_t tvstat_PAL_reg = MEMORY_READ(16, VDP2(TVSTAT)) & 0x1;		            // keep only PAL bit (0)
 	uint8_t oreg10_dotsel = MEMORY_READ(8, OREG(10)) & SMPC_MASK_DOTSEL; 			// check if the Saturn is in 320 or 352 mode, normal smpc init sent the intback command retrieve it...	
 	uint8_t reg_tcr_clksel = MEMORY_READ(8, CPU(TCR)) & TIM_M_CKS;					// extract the Clock select bits for the FRT
 	
-	float32_t period;
+	fix16_t period;
 	
 	if(tvstat_PAL_reg == 0x1) 
-		period = ( (oreg10_dotsel == 0) ? (float32_t) 0.037470726 : (float32_t) 0.035164835 ); /*PAL 26,28*/
+		period = ( (oreg10_dotsel == 0) ? fix16_from_double(0.037470726) : fix16_from_double(0.035164835) ); /*PAL 26,28*/
 	else 
-		period = ( (oreg10_dotsel == 0) ? (float32_t) 0.037210548 : (float32_t) 0.03492059 );  /*NT 26,28*/
+		period = ( (oreg10_dotsel == 0) ? fix16_from_double(0.037210548) : fix16_from_double(0.03492059) );  /*NTSC 26,28*/
 	
 	// clk/8 = 8<<0, clk/32 = 8<<2, clk/128 = 8<<4
 	// time in us = value * period * clk ratio
+     
 	return period * value * (8 << (reg_tcr_clksel << 1));
 }
 
