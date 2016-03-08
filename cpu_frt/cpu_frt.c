@@ -17,7 +17,6 @@ static char * consbuf;
 
 struct smpc_peripheral_digital g_digital;
 volatile uint32_t g_frame_counter = 0;
-volatile uint32_t g_dma_counter = 0;
 static uint32_t tick = 0;
 static void vblank_in_handler(irq_mux_handle_t *);
 static void vblank_out_handler(irq_mux_handle_t *);
@@ -28,11 +27,11 @@ void start_test(void)
 {  
     cons_buffer("[11;2HTest starting");
     
-    vdp2_tvmd_vblank_in_wait();
-    tim_frt_set(0); 							/* set counter value to 0 */
     vdp2_tvmd_vblank_out_wait();
-	counter = tim_frt_get(); 					/* get counter value */
-	fix16_t us = tim_frt_ticks_to_us(counter); 	/* convert counter value to microseconds */    
+    tim_frt_set(0); 
+    vdp2_tvmd_vblank_in_wait();						/* set counter value to 0 */
+	counter = tim_frt_get(); 					    /* get counter value */
+	fix16_t us = tim_frt_ticks_to_us(counter); 	    /* convert counter value to microseconds */    
     fix16_to_str(us, micro_sec, 4);
     
     (void)sprintf(consbuf, "[11;2HTest ended in %u ticks (%s)", counter, micro_sec);
@@ -65,7 +64,7 @@ int main(void)
 		/* Set FRT period to 8 */
         cpu_intc_enable();		
 		
-		tim_frt_init(TIM_CKS_8);
+		tim_frt_init(TIM_CKS_128);
 
         vdp2_tvmd_display_set(); 
         
