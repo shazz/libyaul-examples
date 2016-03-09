@@ -13,6 +13,8 @@ extern "C" {
 #endif /* __cplusplus */
 
 
+#include <fixmath.h>
+
 #define RBG0		0x00000001
 #define RBG1		0x00000002
 #define NON			0 
@@ -20,12 +22,35 @@ extern "C" {
 #define RBG_TB_A	RBG0
 #define RBG_TB_B	RBG1
 
-typedef int32_t fix32_t;    	/* Fixed-point representation, gRadix point is between bit 15 & 16   */
+#if 0
 
 fix32_t SPR_MULF(fix32_t a, fix32_t b);
 fix32_t SPR_DIVF(fix32_t a, fix32_t b);
 fix32_t fsin(fix32_t degree);
 fix32_t fcos(fix32_t degree);
+
+typedef int32_t fix32_t;    	/* Fixed-point representation, gRadix point is between bit 15 & 16   */
+#define SIN(a)              Fsin(a)
+#define COS(a)              Fcos(a)
+#define FIXED(x)	      	((fix32_t)((x) * 65536.0))
+#define MUL_FIXED(a, b)       SPR_MULF(a, b)
+//PROTOTYPE(fix32_t, SPR_MULF, (fix32_t a, fix32_t b));
+#define DIV_FIXED(a, b)       SPR_DIVF(a, b)
+//PROTOTYPE(fix32_t, SPR_DIVF, (fix32_t a, fix32_t b));
+
+#else
+
+typedef fix16_t fix32_t;
+#define SIN(a)                  fix16_sin(fix16_deg_to_rad(a))
+#define COS(a)                  fix16_cos(fix16_deg_to_rad(a))
+#define FIXED(x)	      	    fix16_from_int(x)
+#define MUL_FIXED(a, b)         fix16_mul(a, b)
+#define DIV_FIXED(a, b)         fix16_div(a, b)
+
+#endif
+
+fix32_t	Fsin(fix32_t a);
+fix32_t	Fcos(fix32_t a);
 
 uint32_t vdp2_rbg_initRotateTable(uint32_t address, uint16_t mode, uint32_t rA, uint32_t rB);
 void vdp2_rbg_move(uint32_t screen, fix32_t x, fix32_t y, fix32_t z);
@@ -39,14 +64,7 @@ void vdp2_rbg_scale(uint32_t screen, fix32_t Sx, fix32_t Sy);
 void vdp2_rbg_memcpyw(void *dest, void *src, uint32_t tcnt);
 void vdp2_rbg_copyReg();
 
-fix32_t	Fsin(fix32_t a);
-fix32_t	Fcos(fix32_t a);
 
-#define FIXED(x)	      	((fix32_t)((x) * 65536.0))
-#define MUL_FIXED(a, b)       SPR_MULF(a, b)
-//PROTOTYPE(fix32_t, SPR_MULF, (fix32_t a, fix32_t b));
-#define DIV_FIXED(a, b)       SPR_DIVF(a, b)
-//PROTOTYPE(fix32_t, SPR_DIVF, (fix32_t a, fix32_t b));
 
 
 /****************************************************

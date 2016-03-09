@@ -2,6 +2,9 @@
 #include <yaul.h>
 #include "vdp2_rbg_wrapper.h"
 
+#include <fixmath.h>
+#include <stdlib.h>
+
 // Globals
 
 uint16_t	gK_TableBuff[2][820];
@@ -32,7 +35,6 @@ rotreg_t	* gRotregBuff = _gRotregBuff;
 static	fix32_t	gCurrentMatrix[2][9];
 uint16_t	gRotateTableMode=2;
 
-
 /*------------------------------------------------------------------------
  *
  * NAME : initGlobals
@@ -40,7 +42,7 @@ uint16_t	gRotateTableMode=2;
  *------------------------------------------------------------------------
  */
 void initGlobals(void)
-{
+{        
     gRotateXy[0]    = FIXED(0);
     gRotateXy[1]    = FIXED(0);
     gRotateZ[0]     = FIXED(0);
@@ -73,7 +75,7 @@ void initGlobals(void)
 
 /*------------------------------------------------------------------------
  *
- * NAME : initRotateTable
+ * NAME : vdp2_rbg_initRotateTable
  *
  * PARAMETERS
  *  param1 - address
@@ -98,7 +100,7 @@ uint32_t vdp2_rbg_initRotateTable(uint32_t address, uint16_t mode, uint32_t rA, 
 
     gRa = rA;
     gRb = rB;
-    
+        
     // set RPMD mode
     if( (rA == RBG0) && (rB == RBG0) )		rpmd = 2;
     else if( (rA == NON) && (rB == RBG0) )	rpmd = 1;
@@ -127,9 +129,9 @@ uint32_t vdp2_rbg_initRotateTable(uint32_t address, uint16_t mode, uint32_t rA, 
     
     // looks totally useless
     gRotateTableMode = mode;
-
-    gRotregBuff[0].screenst.x = gCsx[0] - MUL_FIXED(Fcos(r),gCsx[0])-MUL_FIXED((-Fsin(r)),gCsy[0]);
-    gRotregBuff[0].screenst.y = gCsy[0] - MUL_FIXED(Fsin(r),gCsx[0])-MUL_FIXED((Fcos(r)),gCsy[0]);
+    
+    gRotregBuff[0].screenst.x = gCsx[0] - MUL_FIXED(Fcos(r), gCsx[0]) - MUL_FIXED((-Fsin(r)), gCsy[0]);
+    gRotregBuff[0].screenst.y = gCsy[0] - MUL_FIXED(Fsin(r), gCsx[0]) - MUL_FIXED((Fcos(r)), gCsy[0]);
     gRotregBuff[0].screenst.z  =  FIXED(0);
     gRotregBuff[0].screendlt.x = -Fsin(r);
     gRotregBuff[0].screendlt.y =  Fcos(r);
@@ -189,7 +191,7 @@ uint32_t vdp2_rbg_initRotateTable(uint32_t address, uint16_t mode, uint32_t rA, 
 
     addressW = ((address & 0x0007ff80)>>1) + (address & 0x0000003e)/4;
     g_r_reg.paramaddr = addressW;
-
+    
     return(0);
 }
 
@@ -216,16 +218,16 @@ fix32_t	Fsin(fix32_t a)
 	a = a % FIXED(360); 	/* 0 <= a < 360  */
 
 	if(FIXED(270) <= a){	/*  270 <= a < 360  */
-		val = -fsin(FIXED(360) - a);
+		val = -SIN(FIXED(360) - a);
 	}
 	else if(FIXED(180) <= a){	/*  180 <= a < 270  */
-		val = -fsin(a - FIXED(180));
+		val = -SIN(a - FIXED(180));
 	}
 	else if(FIXED(90) <= a){	/*  90 <= a < 180  */
-		val = fsin(FIXED(180) - a);
+		val = SIN(FIXED(180) - a);
 	}
 	else{			/* 0 <= a < 90 */
-		val = fsin(a);
+		val = SIN(a);
 	}
 
 	if(val==0x0000ffff)	val = FIXED(1);
@@ -237,7 +239,7 @@ fix32_t	Fsin(fix32_t a)
 
 /*------------------------------------------------------------------------
  *
- * NAME : Fsin
+ * NAME : Fcos
  *
  * PARAMETERS
  *  param1 - angle
@@ -257,15 +259,15 @@ fix32_t	Fcos(fix32_t a)
 	if(a == 0)	return( FIXED(1) );
 
 	if(FIXED(270) <= a){		/*  270 <= a < 360  */
-		val = fcos(FIXED(360) - a);
+		val = COS(FIXED(360) - a);
 	}else if(FIXED(180) < a){	/*  180 <  a < 270  */
-		val = -fcos(a - FIXED(180));
+		val = -COS(a - FIXED(180));
 	}else if(FIXED(180) == a){	/*  a == 180  */
 		val = - FIXED(1);
 	}else if(FIXED(90) <= a){	/*  90 <= a < 180  */
-		val = -fcos(FIXED(180) - a);
+		val = -COS(FIXED(180) - a);
 	}else{				/* 0 <= a < 90 */
-		val = fcos(a);
+		val = COS(a);
 	}
 	return(val);
 }
@@ -497,18 +499,18 @@ void vdp2_rbg_rotateZD(uint32_t screen, fix32_t r)
  * DESCRIPTION
  *
  * | M00 M01 M02 | | 1    0    0 |
- * | M10 M11 M12 |.| 0  cos -sin |
- * | M20 M21 M22 | | 0  sin  cos |
+ * | M10 M11 M12 |.| 0  Fcos -Fsin |
+ * | M20 M21 M22 | | 0  Fsin  Fcos |
  *
- *		         | M00 M01*cos+M02*sin -M01*sin+M02*cos |
- *		       = | M10 M11*cos+M12*sin -M11*sin+M12*cos |
- *		         | M20 M21*cos+M22*sin -M21*sin+M22*cos |
+ *		         | M00 M01*Fcos+M02*Fsin -M01*Fsin+M02*Fcos |
+ *		       = | M10 M11*Fcos+M12*Fsin -M11*Fsin+M12*Fcos |
+ *		         | M20 M21*Fcos+M22*Fsin -M21*Fsin+M22*Fcos |
  *
  *------------------------------------------------------------------------
  */
 void  vdp2_rbg_rotateX(uint32_t screen, fix32_t xAngle)
 {
-    fix32_t		sinNum, cosNum;
+    fix32_t		FsinNum, cosNum;
     fix32_t		M01, M02, M11, M12, M21, M22;
     fix32_t		Zp,Zs_Zp,Zs_ZpW;
     uint32_t		i;
@@ -531,7 +533,7 @@ void  vdp2_rbg_rotateX(uint32_t screen, fix32_t xAngle)
 			break;
     }
 
-    sinNum = Fsin(xAngle);
+    FsinNum = Fsin(xAngle);
     cosNum = Fcos(xAngle);
     M01 = gCurrentMatrix[tbNum][1];
     M02 = gCurrentMatrix[tbNum][2];
@@ -539,12 +541,12 @@ void  vdp2_rbg_rotateX(uint32_t screen, fix32_t xAngle)
     M12 = gCurrentMatrix[tbNum][3+2];
     M21 = gCurrentMatrix[tbNum][6+1];
     M22 = gCurrentMatrix[tbNum][6+2];
-    gCurrentMatrix[tbNum][1]   =  MUL_FIXED(M01, cosNum) + MUL_FIXED(M02, sinNum);
-    gCurrentMatrix[tbNum][2]   = -MUL_FIXED(M01, sinNum) + MUL_FIXED(M02, cosNum);
-    gCurrentMatrix[tbNum][3+1] =  MUL_FIXED(M11, cosNum) + MUL_FIXED(M12, sinNum);
-    gCurrentMatrix[tbNum][3+2] = -MUL_FIXED(M11, sinNum) + MUL_FIXED(M12, cosNum);
-    gCurrentMatrix[tbNum][6+1] =  MUL_FIXED(M21, cosNum) + MUL_FIXED(M22, sinNum);
-    gCurrentMatrix[tbNum][6+2] = -MUL_FIXED(M21, sinNum) + MUL_FIXED(M22, cosNum);
+    gCurrentMatrix[tbNum][1]   =  MUL_FIXED(M01, cosNum) + MUL_FIXED(M02, FsinNum);
+    gCurrentMatrix[tbNum][2]   = -MUL_FIXED(M01, FsinNum) + MUL_FIXED(M02, cosNum);
+    gCurrentMatrix[tbNum][3+1] =  MUL_FIXED(M11, cosNum) + MUL_FIXED(M12, FsinNum);
+    gCurrentMatrix[tbNum][3+2] = -MUL_FIXED(M11, FsinNum) + MUL_FIXED(M12, cosNum);
+    gCurrentMatrix[tbNum][6+1] =  MUL_FIXED(M21, cosNum) + MUL_FIXED(M22, FsinNum);
+    gCurrentMatrix[tbNum][6+2] = -MUL_FIXED(M21, FsinNum) + MUL_FIXED(M22, cosNum);
 
     gRotregBuff[tbNum].matrix_a = gCurrentMatrix[tbNum][0];
     gRotregBuff[tbNum].matrix_b = gCurrentMatrix[tbNum][1];
@@ -620,19 +622,19 @@ void  vdp2_rbg_rotateX(uint32_t screen, fix32_t xAngle)
  *
  * DESCRIPTION
  *
- * | M00 M01 M02 | |  cos 0  sin |
+ * | M00 M01 M02 | |  Fcos 0  Fsin |
  * | M10 M11 M12 |.|    0 1    0 |
- * | M20 M21 M22 | | -sin 0  cos |
+ * | M20 M21 M22 | | -Fsin 0  Fcos |
  *
- *			|  M00*cos-M02*sin  M01 M00*sin+M02*cos |
- *		    =	|  M10*cos-M12*sin  M11 M10*sin+M12*cos |
- *			|  M20*cos-M22*sin  M21 M20*sin+M22*cos |
+ *			|  M00*Fcos-M02*Fsin  M01 M00*Fsin+M02*Fcos |
+ *		    =	|  M10*Fcos-M12*Fsin  M11 M10*Fsin+M12*Fcos |
+ *			|  M20*Fcos-M22*Fsin  M21 M20*Fsin+M22*Fcos |
  *
  *------------------------------------------------------------------------
  */
 void  vdp2_rbg_rotateY(uint32_t screen, fix32_t yAngle)
 {
-    fix32_t		sinNum, cosNum;
+    fix32_t		FsinNum, cosNum;
     fix32_t		M00, M02, M10, M12, M20, M22;
     fix32_t		Zp,Zs_Zp,Zs_ZpW;
     uint32_t	i;
@@ -655,7 +657,7 @@ void  vdp2_rbg_rotateY(uint32_t screen, fix32_t yAngle)
 			break;
     }
 
-    sinNum = Fsin(yAngle);
+    FsinNum = Fsin(yAngle);
     cosNum = Fcos(yAngle);
     M00 = gCurrentMatrix[tbNum][0+0];
     M02 = gCurrentMatrix[tbNum][0+2];
@@ -663,12 +665,12 @@ void  vdp2_rbg_rotateY(uint32_t screen, fix32_t yAngle)
     M12 = gCurrentMatrix[tbNum][3+2];
     M20 = gCurrentMatrix[tbNum][6+0];
     M22 = gCurrentMatrix[tbNum][6+2];
-    gCurrentMatrix[tbNum][0+0] = MUL_FIXED(M00, cosNum) - MUL_FIXED(M02, sinNum);
-    gCurrentMatrix[tbNum][0+2] = MUL_FIXED(M00, sinNum) + MUL_FIXED(M02, cosNum);
-    gCurrentMatrix[tbNum][3+0] = MUL_FIXED(M10, cosNum) - MUL_FIXED(M12, sinNum);
-    gCurrentMatrix[tbNum][3+2] = MUL_FIXED(M10, sinNum) + MUL_FIXED(M12, cosNum);
-    gCurrentMatrix[tbNum][6+0] = MUL_FIXED(M20, cosNum) - MUL_FIXED(M22, sinNum);
-    gCurrentMatrix[tbNum][6+2] = MUL_FIXED(M20, sinNum) + MUL_FIXED(M22, cosNum);
+    gCurrentMatrix[tbNum][0+0] = MUL_FIXED(M00, cosNum) - MUL_FIXED(M02, FsinNum);
+    gCurrentMatrix[tbNum][0+2] = MUL_FIXED(M00, FsinNum) + MUL_FIXED(M02, cosNum);
+    gCurrentMatrix[tbNum][3+0] = MUL_FIXED(M10, cosNum) - MUL_FIXED(M12, FsinNum);
+    gCurrentMatrix[tbNum][3+2] = MUL_FIXED(M10, FsinNum) + MUL_FIXED(M12, cosNum);
+    gCurrentMatrix[tbNum][6+0] = MUL_FIXED(M20, cosNum) - MUL_FIXED(M22, FsinNum);
+    gCurrentMatrix[tbNum][6+2] = MUL_FIXED(M20, FsinNum) + MUL_FIXED(M22, cosNum);
 
     gRotregBuff[tbNum].matrix_a = gCurrentMatrix[tbNum][0];
     gRotregBuff[tbNum].matrix_c = gCurrentMatrix[tbNum][2];
@@ -741,20 +743,20 @@ void  vdp2_rbg_rotateY(uint32_t screen, fix32_t yAngle)
  *
  * DESCRIPTION
  *
- * | M00 M01 M02 | | cos -sin  0 |
- * | M10 M11 M12 |.| sin  cos  0 |
+ * | M00 M01 M02 | | Fcos -Fsin  0 |
+ * | M10 M11 M12 |.| Fsin  Fcos  0 |
  * | M20 M21 M22 | |   0    0  1 |
  *
- *				| M00*cos+M01*sin -M00*sin+M01*cos M02 |
- *			      =	| M10*cos+M11*sin -M10*sin+M11*cos M12 |
- *				| M20*cos+M21*sin -M20*sin+M21*cos M22 |
+ *				| M00*Fcos+M01*Fsin -M00*Fsin+M01*Fcos M02 |
+ *			      =	| M10*Fcos+M11*Fsin -M10*Fsin+M11*Fcos M12 |
+ *				| M20*Fcos+M21*Fsin -M20*Fsin+M21*Fcos M22 |
  *
  *
  *------------------------------------------------------------------------
  */
 void  vdp2_rbg_rotateZ(uint32_t screen, fix32_t zAngle)
 {
-    fix32_t		sinNum, cosNum;
+    fix32_t		FsinNum, cosNum;
     fix32_t		M00, M01, M10, M11, M20, M21;
     uint16_t	tbNum;
 
@@ -771,7 +773,7 @@ void  vdp2_rbg_rotateZ(uint32_t screen, fix32_t zAngle)
 			break;
     }
 
-    sinNum = Fsin(zAngle);
+    FsinNum = Fsin(zAngle);
     cosNum = Fcos(zAngle);
     M00 = gCurrentMatrix[tbNum][0];
     M01 = gCurrentMatrix[tbNum][1];
@@ -779,12 +781,12 @@ void  vdp2_rbg_rotateZ(uint32_t screen, fix32_t zAngle)
     M11 = gCurrentMatrix[tbNum][3+1];
     M20 = gCurrentMatrix[tbNum][6+0];
     M21 = gCurrentMatrix[tbNum][6+1];
-    gCurrentMatrix[tbNum][0]   =  MUL_FIXED(M00, cosNum) + MUL_FIXED(M01, sinNum);
-    gCurrentMatrix[tbNum][1]   = -MUL_FIXED(M00, sinNum) + MUL_FIXED(M01, cosNum);
-    gCurrentMatrix[tbNum][3+0] =  MUL_FIXED(M10, cosNum) + MUL_FIXED(M11, sinNum);
-    gCurrentMatrix[tbNum][3+1] = -MUL_FIXED(M10, sinNum) + MUL_FIXED(M11, cosNum);
-    gCurrentMatrix[tbNum][6+0] =  MUL_FIXED(M20, cosNum) + MUL_FIXED(M21, sinNum);
-    gCurrentMatrix[tbNum][6+1] = -MUL_FIXED(M20, sinNum) + MUL_FIXED(M21, cosNum);
+    gCurrentMatrix[tbNum][0]   =  MUL_FIXED(M00, cosNum) + MUL_FIXED(M01, FsinNum);
+    gCurrentMatrix[tbNum][1]   = -MUL_FIXED(M00, FsinNum) + MUL_FIXED(M01, cosNum);
+    gCurrentMatrix[tbNum][3+0] =  MUL_FIXED(M10, cosNum) + MUL_FIXED(M11, FsinNum);
+    gCurrentMatrix[tbNum][3+1] = -MUL_FIXED(M10, FsinNum) + MUL_FIXED(M11, cosNum);
+    gCurrentMatrix[tbNum][6+0] =  MUL_FIXED(M20, cosNum) + MUL_FIXED(M21, FsinNum);
+    gCurrentMatrix[tbNum][6+1] = -MUL_FIXED(M20, FsinNum) + MUL_FIXED(M21, cosNum);
 
     gRotregBuff[tbNum].matrix_a = gCurrentMatrix[tbNum][0];
     gRotregBuff[tbNum].matrix_b = gCurrentMatrix[tbNum][1];
@@ -832,8 +834,6 @@ void vdp2_rbg_scale(uint32_t screen, fix32_t Sx, fix32_t Sy)
 			break;
    }
 }
-
-
 
 /*------------------------------------------------------------------------
  *

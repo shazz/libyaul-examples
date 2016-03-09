@@ -2,8 +2,10 @@
  * Copyright (c) 2012-2016 Israel Jacquez
  * See LICENSE for details.
  *
- * Israel Jacquez <mrkotfw@gmail.com>
+ * Shazz <shazz@trsi.de>
  */
+
+#include <stdlib.h>
 
 #include <yaul.h>
 #include <langam.h>
@@ -37,6 +39,8 @@ static void hardware_init(void)
 	/* SMPC */
 	smpc_init();
 	smpc_peripheral_init();
+    
+    cons_init(CONS_DRIVER_VDP2);  
 
 	/* Disable interrupts */
 	cpu_intc_disable();
@@ -56,10 +60,9 @@ static void hardware_init(void)
 
 static void init_screen_RBG0(void)
 {
-	
 	// init rotation parameters, will be copied at vbl, mode 0
 	//initRotateTable(SCL_VDP2_VRAM_B1+0x10000,2, RBG0, RBG1);
-    vdp2_rbg_initRotateTable(VRAM_ADDR_4MBIT(3, 0) + 0x10000, 0, RBG0, RBG1);	
+    vdp2_rbg_initRotateTable(VRAM_ADDR_4MBIT(1, 0), 0, RBG0, RBG1);	
 	
 	/*
 	// set RBG0 parameters
@@ -70,7 +73,7 @@ static void init_screen_RBG0(void)
 	for(i=0;i<MAP_NUM;i++) Rbg0Scfg.plate_addr[i] = SCL_VDP2_VRAM_A0;
 	SCL_SetConfig(SCL_RBG0, &Rbg0Scfg);
 	*/
-
+    
     /* We want to be in VBLANK */
     vdp2_tvmd_display_clear();
 
@@ -82,7 +85,7 @@ static void init_screen_RBG0(void)
     rbg0_format.sbf_cc_count 			= SCRN_CCC_PALETTE_16; 				/* color mode */
     rbg0_format.sbf_bitmap_size.width 	= 512; 								/* Bitmap sizes: 512x256, 512x512, 1024x256, 1024x512 */
     rbg0_format.sbf_bitmap_size.height 	= 256;
-    rbg0_format.sbf_bitmap_pattern 		= VRAM_ADDR_4MBIT(0, 0x00000); 		/* Bitmap pattern lead address */
+    rbg0_format.sbf_bitmap_pattern 		= VRAM_ADDR_4MBIT(0, 0x0); 		/* Bitmap pattern lead address */
     rbg0_format.sbf_color_palette 		= (uint32_t)_rbg0_color_palette;
     rbg0_format.sbf_rp_mode				= 0; 								/*  Rotation parameter mode:   Mode 0: Rotation Parameter A, Mode 1: Rotation Parameter B, Mode 2: Swap Coefficient Data Read, Mode 3: Swap via Rotation Parameter Window */
 
@@ -105,7 +108,7 @@ static void init_screen_RBG0(void)
     vdp2_vram_control_set(vram_ctl);
 
 	// copy bitmap in VRAM
-    memcpy((void *)VRAM_ADDR_4MBIT(0, 0x00000), background_data, sizeof(background_data));
+    memcpy((void *)VRAM_ADDR_4MBIT(0, 0x0), background_data, sizeof(background_data));
 
     /* Copy the BGR555 palette data */
     memcpy(_rbg0_color_palette, background_palette, sizeof(background_palette));
@@ -144,16 +147,20 @@ int main(void)
 
 	hardware_init();
 	init_screen_RBG0();
-
+    
 	//vdp2_scrn_back_screen_color_set(VRAM_ADDR_4MBIT(3, 0x01FFFE), RGB888_TO_RGB555(0, 0, 0));
 
 	r = FIXED(2);
 	while (true)
 	{
 		vdp2_tvmd_vblank_in_wait();
+        
+        cons_flush();
+        
 		vdp2_tvmd_vblank_out_wait();
 
-		vdp2_rbg_rotate(RBG_TB_A, 0,0,r);
+		
+        vdp2_rbg_rotate(RBG_TB_A, 0,0,r);
 
 		/*if(PadData1 || PadData1EW)
 		{
@@ -182,6 +189,8 @@ int main(void)
 			}
 		}
         */
+                        // exit
+        if(g_digital.pressed.button.start) abort();
 	}
 
 	return 0;
