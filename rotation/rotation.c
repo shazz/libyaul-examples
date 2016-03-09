@@ -62,10 +62,17 @@ static void init_screen_RBG0(void)
 {
 	// init rotation parameters, will be copied at vbl, mode 0
 	//initRotateTable(SCL_VDP2_VRAM_B1+0x10000,2, RBG0, RBG1);
-    vdp2_rbg_initRotateTable(VRAM_ADDR_4MBIT(1, 0), 0, RBG0, RBG1);	
+    vdp2_rbg_initRotateTable(VRAM_ADDR_4MBIT(1, 0x0), 0, RBG0, RBG1);	
 	
 	/*
 	// set RBG0 parameters
+	SCL_InitVramConfigTb(&tp);
+	tp.vramModeA  = ON;		
+	tp.vramModeB  = ON;		
+	tp.vramA0     = SCL_RBG0_CHAR;	
+	tp.vramA1     = SCL_RBG0_K;	
+	SCL_SetVramConfig(&tp);
+    
 	SCL_InitConfigTb(&Rbg0Scfg);
 	Rbg0Scfg.dispenbl = ON;
 	Rbg0Scfg.coltype  = SCL_COL_TYPE_256;
@@ -73,13 +80,13 @@ static void init_screen_RBG0(void)
 	for(i=0;i<MAP_NUM;i++) Rbg0Scfg.plate_addr[i] = SCL_VDP2_VRAM_A0;
 	SCL_SetConfig(SCL_RBG0, &Rbg0Scfg);
 	*/
-    
+
     /* We want to be in VBLANK */
     vdp2_tvmd_display_clear();
 
     /* set RGB0 in bitmap mode, 16 col, 512x256 */
     struct scrn_bitmap_format rbg0_format;
-    struct vram_ctl *vram_ctl;
+    //struct vram_ctl *vram_ctl;
 
     rbg0_format.sbf_scroll_screen 		= SCRN_RBG0; 						/* Normal/rotational background */
     rbg0_format.sbf_cc_count 			= SCRN_CCC_PALETTE_16; 				/* color mode */
@@ -92,10 +99,10 @@ static void init_screen_RBG0(void)
 	// check BGON is set for RGB0 -> R0-TP-ON + R0-ON
     vdp2_scrn_bitmap_format_set(&rbg0_format);
 
-	// check RAM CTL is set for registers RDBSA00-*B11
-    //MEMORY_WRITE(16, VDP2(RAMCTL), 0x1300);
+	// check RAM CTL is set for registers RDBSA00-*B11 -> 1 0011 0000 0111 set RGB0 bitmap on A0 and end table on A1 (!!!!)
+    MEMORY_WRITE(16, VDP2(RAMCTL), 0x1307);
 
-    vram_ctl = vdp2_vram_control_get();
+    /*vram_ctl = vdp2_vram_control_get();
     vram_ctl->vram_cycp.pt[0].t7 = VRAM_CTL_CYCP_CHPNDR_NBG0; // needed ?
     vram_ctl->vram_cycp.pt[0].t6 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[0].t5 = VRAM_CTL_CYCP_NO_ACCESS;
@@ -104,8 +111,7 @@ static void init_screen_RBG0(void)
     vram_ctl->vram_cycp.pt[0].t2 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[0].t1 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[0].t0 = VRAM_CTL_CYCP_NO_ACCESS;
-
-    vdp2_vram_control_set(vram_ctl);
+    vdp2_vram_control_set(vram_ctl);*/
 
 	// copy bitmap in VRAM
     memcpy((void *)VRAM_ADDR_4MBIT(0, 0x0), background_data, sizeof(background_data));
