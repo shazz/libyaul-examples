@@ -16,6 +16,6 @@ IP_SLAVE_STACK_ADDR:= 0x00000000
 IP_1ST_READ_ADDR:= 0x06004000
 
 LIBRARIES:= langam
-OBJECTS:= intro.o reflection.o main.o 
+OBJECTS:= intro.o reflection.o additive.o main.o 
 
 include $(INSTALL_ROOT)/share/yaul/post.common.mk

@@ -18,8 +18,9 @@ void reflection_update(uint32_t timer);
 void reflection_draw(void);
 void reflection_exit(void);
 
-#ifdef DEBUG
-extern struct cons cons;
-#endif
+void additive_init(void);
+void additive_update(uint32_t timer);
+void additive_draw(void);
+void additive_exit(void);
 
 #endif /* !SCENES_H */

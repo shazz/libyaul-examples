@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <langam.h>
-#include <langam.h>
 
 #include "scenes.h"
 
@@ -29,8 +28,8 @@ static void hardware_init(void)
     tvmd |= ((1 << 8) | (1 << 4));              // set BDCLMD,  VRES0 to 1
     MEMORY_WRITE(16, VDP2(TVMD), 0x8110);    
     
-    // Set Color mode to mode 0 (2KWord Color RAM)
-    MEMORY_WRITE(16, VDP2(RAMCTL), 0x300);        
+    // Set Color mode to mode 0 (2KWord Color RAM), 2 banks
+    MEMORY_WRITE(16, VDP2(RAMCTL), 0x1300);       
 
 	/* VDP1 */
 	vdp1_init();
@@ -56,8 +55,6 @@ static void hardware_init(void)
     /* Set screen to black */
     static uint16_t back_screen_color = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
 	vdp2_scrn_back_screen_color_set(VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color);
-    //static uint16_t back_screen_color[] = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
-	//vdp2_scrn_back_screen_set(/* single_color = */ true, VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color, 1);    
 }
 
 
@@ -68,7 +65,9 @@ int main(void)
         sequencer_initialize();
 
         sequencer_register("intro", 80, intro_init, intro_update, intro_draw, intro_exit);
-        sequencer_register("reflection", 90000, reflection_init, reflection_update, reflection_draw, reflection_exit);
+        sequencer_register("reflection", 150, reflection_init, reflection_update, reflection_draw, reflection_exit);
+        sequencer_register("additive", 90000, additive_init, additive_update, additive_draw, additive_exit);
+
 
         sequencer_start();
 
