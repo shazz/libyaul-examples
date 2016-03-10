@@ -259,21 +259,7 @@ void additive_init(void)
     MEMORY_WRITE(16, VDP2(CCRNA), 0x0);
     MEMORY_WRITE(16, VDP2(CCRNB), 0x1F);
     
-    // disable back screen table
-    MEMORY_WRITE(16, VDP2(BKTAU), 0x0); 
-    static uint16_t back_screen_color = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
-	vdp2_scrn_back_screen_color_set(VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color);    
 
-	cpu_intc_disable();
-	scu_timer_all_disable();
-	cpu_intc_enable();    
-    
-    struct scrn_ls_format linescrollfmt;
-    linescrollfmt.ls_scrn = SCRN_NBG0;
-    linescrollfmt.ls_lsta = 0;
-    linescrollfmt.ls_int = 0;	              
-    linescrollfmt.ls_fun =  0;	   // enable : SCRN_LS_N0SCX | SCRN_LS_N0SCY | N0LSS0 | N0LSS1 | N0LZMX       
-    vdp2_scrn_ls_set(&linescrollfmt);    
     
     /* DMA Indirect list, aligned on 64 bytes due to more than 24bytes size (6*4*3=72) */
     uint32_t dma_tbl[] __attribute__((aligned(64))) = { 

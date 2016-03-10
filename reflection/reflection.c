@@ -383,4 +383,20 @@ void reflection_exit(void)
     g_counterY = 0;
     g_incrY = +2;   
     g_timer = -255; 
+    
+	cpu_intc_disable();
+	scu_timer_all_disable();
+	cpu_intc_enable();       
+    
+    // disable back screen table
+    MEMORY_WRITE(16, VDP2(BKTAU), 0x0); 
+    static uint16_t back_screen_color = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
+	vdp2_scrn_back_screen_color_set(VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color);    
+    
+    linescrollfmt.ls_scrn = SCRN_NBG0;
+    linescrollfmt.ls_lsta = 0;
+    linescrollfmt.ls_int = 0;	              
+    linescrollfmt.ls_fun =  0;     
+    vdp2_scrn_ls_set(&linescrollfmt);    
+     
 }
