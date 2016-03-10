@@ -225,6 +225,7 @@ void sequencer_load_next(void)
        	if (scene != NULL) {
 			current_scene = scene;
             current_scene->init();
+            current_scene->initialized = true;
         }
         else{
             sequencer_stop();
