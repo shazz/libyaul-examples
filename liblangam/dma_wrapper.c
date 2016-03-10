@@ -147,8 +147,12 @@ void scu_dma_listcpy(uint32_t * table)
         g_current_channel= (g_current_channel + 1) % 3;
         g_dma_int_status[g_current_channel] = (MEMORY_READ(32, SCU(DSTA)) & g_dma_int_status_mask[g_current_channel])==0;
     }
-
-    cfg.mode.indirect.nelems = sizeof(table)/sizeof(uint32_t);
+	
+	uint32_t elems = sizeof(table)/sizeof(uint32_t);
+	
+	// set end code in case of... easy to forget
+	table[(elems-1)*sizeof(uint32_t)] |= SCU_DMA_END_CODE;	
+    cfg.mode.indirect.nelems = elems
     cfg.mode.indirect.tbl = (void *) table;
 
 	cfg.starting_factor = DMA_MODE_START_FACTOR_ENABLE;
