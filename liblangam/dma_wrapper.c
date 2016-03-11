@@ -134,7 +134,7 @@ void *scu_dma_sync_memcpy(void *dest, const void *src, size_t n)
 /*
  * Start a SCU DMA Transfer, indirect mode, asynchronously
  */
-void scu_dma_listcpy(uint32_t * table)
+void scu_dma_listcpy(uint32_t * table, uint16_t nb_elems)
 {
 	struct dma_level_cfg cfg;
     
@@ -148,11 +148,9 @@ void scu_dma_listcpy(uint32_t * table)
         g_dma_int_status[g_current_channel] = (MEMORY_READ(32, SCU(DSTA)) & g_dma_int_status_mask[g_current_channel])==0;
     }
 	
-	uint32_t elems = sizeof(table)/sizeof(uint32_t);
-	
 	// set end code in case of... easy to forget
-	table[(elems-1)*sizeof(uint32_t)] |= SCU_DMA_END_CODE;	
-    cfg.mode.indirect.nelems = elems
+	table[nb_elems-1] |= SCU_DMA_END_CODE;	
+    cfg.mode.indirect.nelems = 1; /* bug in sanitizer, should be nb_elems/3 */
     cfg.mode.indirect.tbl = (void *) table;
 
 	cfg.starting_factor = DMA_MODE_START_FACTOR_ENABLE;
@@ -162,7 +160,7 @@ void scu_dma_listcpy(uint32_t * table)
 	scu_dma_cpu_level_set(g_current_channel, DMA_MODE_INDIRECT, &cfg);
     
     g_dma_transfer_status = SCU_DMA_STATUS_WAIT;
-	scu_dma_cpu_level_start(g_current_channel); 	
+	scu_dma_cpu_level_start(g_current_channel);     	
     
     cpu_intc_enable();  
 }

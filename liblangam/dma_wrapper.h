@@ -42,7 +42,7 @@ void *scu_dma_sync_memcpy(void *dest, const void *src, size_t n);
 /*
  * Start a SCU DMA Transfer, indirect mode, asynchronously
  */
-void scu_dma_listcpy(uint32_t * table);
+void scu_dma_listcpy(uint32_t * table, uint16_t nb_elems);
 
 /*
  * Get SCU DMA status
