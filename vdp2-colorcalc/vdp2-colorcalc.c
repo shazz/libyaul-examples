@@ -15,6 +15,17 @@
 
 #include "back_add.h"
 #include "front_add.h"
+#include "particles_1.h"
+#include "particles_2.h"
+
+#define PLANE0_PNT  front_add_pattern_name_table
+#define PLANE0_CD   front_add_cell_data
+#define PLANE0_CP   front_add_cell_palette
+
+#define PLANE2_PNT  back_add_pattern_name_table
+#define PLANE2_CD   back_add_cell_data
+#define PLANE2_CP   back_add_cell_palette
+
 
 struct smpc_peripheral_digital g_digital;
 volatile uint32_t g_frame_counter = 0;
@@ -22,6 +33,9 @@ volatile uint32_t g_frame_counter = 0;
 static uint32_t tick = 0;
 static void vblank_in_handler(irq_mux_handle_t *);
 static void vblank_out_handler(irq_mux_handle_t *);
+
+uint8_t g_cc_NBG0, g_cc_NBG2;
+uint8_t g_ecc_NBG0;
 
 #define NBG0_VRAM_PAL_NB 2
 #define NBG2_VRAM_PAL_NB 1
@@ -62,8 +76,10 @@ static uint32_t *_nbg2_color_palette = (uint32_t *)CRAM_MODE_0_OFFSET(NBG2_VRAM_
 static uint16_t _nbg0_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE_0_OFFSET(NBG0_VRAM_PAL_NB, 0, 0));
 static uint16_t _nbg2_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE_0_OFFSET(NBG2_VRAM_PAL_NB, 0, 0));
 
-static unsigned int joyLeft = 0, oldjoyLeft = 0, joyRight = 0, oldjoyRight = 0, joyUp = 0, oldjoyUp = 0, joyDown = 0, oldjoyDown = 0;    
-		
+static unsigned int joyLeft = 0, joyRight = 0, joyUp = 0, joyDown = 0;    
+static unsigned int joyA= 0, joyB = 0, joyL = 0, joyR = 0;    
+static unsigned int joyX= 0, joyY = 0; //, joyZ = 0;  
+    
 /*
  *  void init_scrollscreen_nbg0(void)
  */
@@ -91,7 +107,7 @@ void init_scrollscreen_nbg0(void)
     uint16_t *nbg0_page0 = _nbg0_planes[0];
 
 	for (i = 0; i < 2048; i++) {
-			uint16_t cell_data_number = _nbg0_cell_data_number + front_add_pattern_name_table[i];
+			uint16_t cell_data_number = _nbg0_cell_data_number + PLANE0_PNT[i];
 			nbg0_page0[i] = cell_data_number | _nbg0_palette_number;
 	}
 
@@ -129,7 +145,7 @@ void init_scrollscreen_nbg2(void)
     uint16_t *nbg2_page0 = _nbg2_planes[0];
 
 	for (i = 0; i < 2048; i++) {
-			uint16_t cell_data_number = _nbg2_cell_data_number + back_add_pattern_name_table[i];
+			uint16_t cell_data_number = _nbg2_cell_data_number + PLANE2_PNT[i];
 			nbg2_page0[i] = cell_data_number | _nbg2_palette_number;
 	}
 
@@ -201,9 +217,7 @@ void set_VRAM_access(void)
  * 
  */
 void init(void)
-{       
-    uint16_t tvmd;
-	       
+{           
     /* We want to be in VBLANK-IN (retrace) */
     vdp2_tvmd_display_clear();    
         
@@ -219,12 +233,12 @@ void init(void)
     
     /* DMA Indirect list, aligned on 64 bytes due to more than 24bytes size (6*4*3=72) */
     uint32_t dma_tbl[] __attribute__((aligned(64))) = { 
-            (uint32_t)sizeof(front_add_cell_data), (uint32_t)_nbg0_cell_data, (uint32_t)front_add_cell_data, 
-            (uint32_t)sizeof(front_add_cell_palette), (uint32_t)_nbg0_color_palette, (uint32_t)front_add_cell_palette, 
-            (uint32_t)sizeof(back_add_cell_data), (uint32_t)_nbg2_cell_data, (uint32_t)back_add_cell_data, 
-            (uint32_t)sizeof(back_add_cell_palette), (uint32_t)_nbg2_color_palette, SCU_DMA_END_CODE | (uint32_t)back_add_cell_palette                      
+            (uint32_t)sizeof(PLANE0_CD), (uint32_t)_nbg0_cell_data, (uint32_t)PLANE0_CD, 
+            (uint32_t)sizeof(PLANE0_CP), (uint32_t)_nbg0_color_palette, (uint32_t)PLANE0_CP, 
+            (uint32_t)sizeof(PLANE2_CD), (uint32_t)_nbg2_cell_data, (uint32_t)PLANE2_CD, 
+            (uint32_t)sizeof(PLANE2_CP), (uint32_t)_nbg2_color_palette, (uint32_t)PLANE2_CP                      
     };    
-    scu_dma_listcpy(dma_tbl);
+    scu_dma_listcpy(dma_tbl, 4*3);
     while(scu_dma_get_status(SCU_DMA_ALL_CH) == SCU_DMA_STATUS_WAIT);
     
     /* set all other stuff */ 
@@ -234,12 +248,6 @@ void init(void)
     
     g_cc_NBG0 = 0x0;
     g_cc_NBG2 = 0x1F;
-    
-    // blur
-    
-	//SCL_SET_EXCCEN(0);
-	//SCL_SET_BOKEN(1);    
-    //SCL_SET_BOKN(5);
     
 }
 
@@ -251,32 +259,66 @@ void read_digital_pad(void)
 		joyDown = g_digital.pressed.button.down;
 		joyRight = g_digital.pressed.button.right;                            
 		joyLeft = g_digital.pressed.button.left;
+        joyA = g_digital.released.button.a;
+        joyB = g_digital.released.button.b;
+        joyL = g_digital.released.button.l;
+        joyR = g_digital.released.button.r;    
+        joyX = g_digital.released.button.x;  
+        joyY = g_digital.released.button.y;     
 
-		if (joyUp & !oldjoyUp)
+		if (joyDown)
 		{
 				if(g_cc_NBG2 < 0x1F) g_cc_NBG2++;
 		}
-		else if (joyDown & !oldjoyDown)
+		else if (joyUp)
 		{
 				if(g_cc_NBG2 > 0x0) g_cc_NBG2--;
 		}
-		else if (joyLeft & !oldjoyLeft)
+		else if (joyRight)
 		{
 				if(g_cc_NBG0 > 0x0) g_cc_NBG0--;
 		}
-		else if (joyRight & !oldjoyRight)
+		else if (joyLeft)
 		{
-				if(g_cc_NBG0 < 0x1F) g_cc_NBG0++;    
-				
+				if(g_cc_NBG0 < 0x1F) g_cc_NBG0++;    				
+		}
+  		else if (joyA)
+		{
+            MEMORY_WRITE(16, VDP2(CCCTL), 0x0);    
+            MEMORY_WRITE(16, VDP2(CCCTL), (1 << 15) | (1 << 14) | (1 << 12) | 0x5);    
+		} 
+   		else if (joyB)
+		{
+            MEMORY_WRITE(16, VDP2(CCCTL), 0x0);    
+            MEMORY_WRITE(16, VDP2(CCCTL), 0x5);    
+		}   
+   		else if (joyL)
+		{
+            MEMORY_WRITE(16, VDP2(CCCTL), 0x0);    
+            MEMORY_WRITE(16, VDP2(CCCTL), (1 << 10) | 0x5);    
+            
+            g_ecc_NBG0 = (g_ecc_NBG0 + 1) & 0x3;
+            MEMORY_WRITE(16, VDP2(SFCCMD), g_ecc_NBG0);  
+		}    
+        else if (joyR)
+		{
+            MEMORY_WRITE(16, VDP2(CCCTL), 0x0);    
+            MEMORY_WRITE(16, VDP2(CCCTL), 0x5);    
+		}
+        else if (joyX)
+		{
+            uint16_t reg = MEMORY_READ(16, VDP2(CCCTL));    
+            MEMORY_WRITE(16, VDP2(CCCTL), reg | (1 << 9));    
 		}  
+         else if (joyY)
+		{
+            uint16_t reg = MEMORY_READ(16, VDP2(CCCTL));    
+            MEMORY_WRITE(16, VDP2(CCCTL), reg & (0xFDFF));    
+		}   
 		
 		// exit
 		if(g_digital.pressed.button.start) abort();		
-		
-		oldjoyUp = joyUp;
-		oldjoyDown = joyDown;
-		oldjoyLeft = joyLeft;
-		oldjoyRight = joyRight; 
+
 		
 		MEMORY_WRITE(16, VDP2(CCRNA), g_cc_NBG0 & 0x1F);
 		MEMORY_WRITE(16, VDP2(CCRNB), g_cc_NBG2 & 0x1F);    
