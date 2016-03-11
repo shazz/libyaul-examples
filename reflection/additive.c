@@ -266,9 +266,9 @@ void additive_init(void)
             (uint32_t)sizeof(front_add_cell_data), (uint32_t)_nbg0_cell_data, (uint32_t)front_add_cell_data, 
             (uint32_t)sizeof(front_add_cell_palette), (uint32_t)_nbg0_color_palette, (uint32_t)front_add_cell_palette, 
             (uint32_t)sizeof(back_add_cell_data), (uint32_t)_nbg2_cell_data, (uint32_t)back_add_cell_data, 
-            (uint32_t)sizeof(back_add_cell_palette), (uint32_t)_nbg2_color_palette, SCU_DMA_END_CODE | (uint32_t)back_add_cell_palette                      
+            (uint32_t)sizeof(back_add_cell_palette), (uint32_t)_nbg2_color_palette, (uint32_t)back_add_cell_palette                      
     };    
-    scu_dma_listcpy(dma_tbl);
+    scu_dma_listcpy(dma_tbl, 4*3);
     while(scu_dma_get_status(SCU_DMA_ALL_CH) == SCU_DMA_STATUS_WAIT);
     
     /* set all other stuff */ 

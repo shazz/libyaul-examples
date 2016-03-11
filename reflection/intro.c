@@ -327,9 +327,9 @@ void intro_init(void)
             (uint32_t)sizeof(ship_cell_data), (uint32_t)_nbg1_cell_data, (uint32_t)ship_cell_data, 
             (uint32_t)sizeof(ship_cell_palette), (uint32_t)_nbg1_color_palette, (uint32_t)ship_cell_palette,             
             (uint32_t)sizeof(stars_cell_data), (uint32_t)_nbg2_cell_data, (uint32_t)stars_cell_data,
-            (uint32_t)sizeof(stars_cell_palette), (uint32_t)_nbg2_color_palette, SCU_DMA_END_CODE | (uint32_t)stars_cell_palette             
+            (uint32_t)sizeof(stars_cell_palette), (uint32_t)_nbg2_color_palette, (uint32_t)stars_cell_palette             
     };    
-    scu_dma_listcpy(dma_tbl);
+    scu_dma_listcpy(dma_tbl, 6*3);
     while(scu_dma_get_status(SCU_DMA_ALL_CH) == SCU_DMA_STATUS_WAIT);
     
     /* set all other stuff */ 
