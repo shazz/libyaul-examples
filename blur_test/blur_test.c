@@ -50,13 +50,18 @@ static uint32_t *_nbg3_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(0, 0x1000);
 static uint16_t _nbg3_cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)VRAM_ADDR_4MBIT(0, 0x1000));
 
 /* CRAM */
-static uint32_t *_nbg3_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(0, 0, 0);
+static uint32_t *_nbg3_color_palette = (uint32_t *)CRAM_MODE_0_OFFSET(0, 0, 0);
 static uint16_t _nbg3_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE_0_OFFSET(0, 0, 0));
+
+static unsigned int joyLeftTrigger = 0, joyRightTrigger = 0;    
 
 static void hardware_init(void)
 {
 	/* VDP2 */
 	vdp2_init();
+    
+    // Set Color mode to mode 0 (1KWord Color RAM), 2 banks
+    MEMORY_WRITE(16, VDP2(RAMCTL), 0x300);     // 0000 0011 0000 0000    
 
 	/* VDP1 */
 	vdp1_init();
@@ -79,12 +84,9 @@ static void hardware_init(void)
 
 	/* Enable interrupts */
 	cpu_intc_enable();
-	
-    // Set Color mode to mode 0 (1KWord Color RAM), 2 banks
-    MEMORY_WRITE(16, VDP2(RAMCTL), 0x1300);     
     
 	// Enable color cal on NBG3  only: BOKEN | BOKN2 | BOKN1
-    //MEMORY_WRITE(16, VDP2(CCCTL), (1 << 15) | (1 << 14) | (1 << 13));    	
+    MEMORY_WRITE(16, VDP2(CCCTL), (1 << 15) | (6 << 12));    	
 }
 
 void init_scrollscreen_nbg3(void)
@@ -113,7 +115,7 @@ void init_scrollscreen_nbg3(void)
 	nbg3_format.scf_map.plane_d = (uint32_t)_nbg3_planes[3];
 
 	vdp2_scrn_cell_format_set(&nbg3_format);
-    vdp2_priority_spn_set(SCRN_NBG3, 7);
+    vdp2_priority_spn_set(SCRN_NBG3, 2);
 
     vram_ctl = vdp2_vram_control_get();
     vram_ctl->vram_cycp.pt[0].t7 = VRAM_CTL_CYCP_CHPNDR_NBG3;
@@ -127,22 +129,45 @@ void init_scrollscreen_nbg3(void)
     vdp2_vram_control_set(vram_ctl);
 
     /* Copy the palette data */
-    memcpy(_nbg3_color_palette, cell_palette, sizeof(cell_palette));
+    memcpy(_nbg3_color_palette, kingkong_cell_palette, sizeof(kingkong_cell_palette));
 
     /* Copy the cell data */
-    memcpy(_nbg3_cell_data, cell_data, sizeof(cell_data));
+    memcpy(_nbg3_cell_data, kingkong_cell_data, sizeof(kingkong_cell_data));
 
     /* Build the pattern data */   
     uint32_t i;
     uint16_t *nbg3_page0 = _nbg3_planes[0];
 
 	for (i = 0; i < 2048; i++) {
-			uint16_t cell_data_number = _nbg3_cell_data_number + pattern_name_table[i];
+			uint16_t cell_data_number = _nbg3_cell_data_number + kingkong_pattern_name_table[i];
 			nbg3_page0[i] = cell_data_number | _nbg3_palette_number;
 	}
 
 	// blur doesn't work in scroll screen is transparent
     vdp2_scrn_display_set(SCRN_NBG3, /* transparent = */ false);
+    MEMORY_WRITE(16, VDP2(BGON), (1 << 3) | (1 << 11));
+}
+
+void read_digital_pad(void)
+{
+	if (g_digital.connected == 1)
+	{
+		joyRightTrigger = g_digital.pressed.button.r;                            
+		joyLeftTrigger = g_digital.pressed.button.l;
+
+        // Enable color cal on NBG3 only => CCCTL{ BOKEN | BOKN2 | BOKN1 }
+		if (joyRightTrigger)
+		{
+				MEMORY_WRITE(16, VDP2(CCCTL), (1 << 15) | (6 << 12));
+		}
+		else if (joyLeftTrigger)
+		{
+				MEMORY_WRITE(16, VDP2(CCCTL), 0x0);	  			
+		}
+		
+		// exit
+		if(g_digital.pressed.button.start) abort();		
+	}  
 }
 
 int main(void)
@@ -158,19 +183,10 @@ int main(void)
 	for(;;)
 	{
 	  	vdp2_tvmd_vblank_in_wait();
-
-		if (g_digital.connected == 1)
-		{
-			if(g_digital.pressed.button.start) abort();	
-			
-			// Enable color cal on NBG3 only => CCCTL{ BOKEN | BOKN2 | BOKN1 }
-			if(g_digital.pressed.released.right) MEMORY_WRITE(16, VDP2(CCCTL), (1 << 15) | (1 << 14) | (1 << 13));
-			if(g_digital.pressed.released.left) MEMORY_WRITE(16, VDP2(CCCTL), 0x0);	
-		}
+        
+        read_digital_pad();
 
 	  	vdp2_tvmd_vblank_out_wait();
-		
-
 	}
 
 	return 0;
