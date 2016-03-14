@@ -35,6 +35,10 @@ rotreg_t	* gRotregBuff = _gRotregBuff;
 static	fix32_t	gCurrentMatrix[2][9];
 uint16_t	gRotateTableMode=2;
 
+uint32_t    debugTable[1024];
+uint16_t    debugIdx = 0;
+uint8_t     oneshot = 1;
+
 /*------------------------------------------------------------------------
  *
  * NAME : initGlobals
@@ -108,6 +112,7 @@ uint32_t vdp2_rbg_initRotateTable(uint32_t address, uint16_t mode, uint32_t rA, 
     else									rpmd = 0;
 
     g_r_reg.paramode = rpmd;    /* Rotation parameters mode bit */
+    MEMORY_WRITE(16, VDP2(RPMD), rpmd);
 
     r=FIXED(0);
 
@@ -191,8 +196,51 @@ uint32_t vdp2_rbg_initRotateTable(uint32_t address, uint16_t mode, uint32_t rA, 
 
     addressW = ((address & 0x0007ff80)>>1) + (address & 0x0000003e)/4;
     g_r_reg.paramaddr = addressW;
+    // write RPTAU+RPTAL in one shot
+    MEMORY_WRITE(32, VDP2(RPTAU), addressW)
     
-    return(0);
+    
+
+	debugTable[debugIdx++] = (uint32_t)0xDEADBEEF;
+	debugTable[debugIdx++] = (uint32_t)&gRotregBuff[0];
+	debugTable[debugIdx++] = (uint32_t)gRotateTableAddress;
+	debugTable[debugIdx++] = (uint32_t)gRotateTableMode;
+	debugTable[debugIdx++] = (uint32_t)gCsx[0];
+	debugTable[debugIdx++] = (uint32_t)gCsy[0];
+	debugTable[debugIdx++] = (uint32_t)address;
+	debugTable[debugIdx++] = (uint32_t)addressW;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].screenst.x;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].screenst.y;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].screenst.z;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].screendlt.x;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].screendlt.y;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].delta.x;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].delta.y;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].matrix_a;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].matrix_b;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].matrix_c;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].matrix_d;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].matrix_e;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].matrix_f;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].viewp.x;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].viewp.y;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].viewp.z;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy1;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].rotatecenter.x;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].rotatecenter.y;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].rotatecenter.z;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy2;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].move.x;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].move.y;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].zoom.x;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].zoom.y;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].k_tab;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].k_delta.x;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].k_delta.y;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy3[0];
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy3[1];
+    
+    return((uint32_t)debugTable);
 }
 
 
@@ -294,6 +342,13 @@ void vdp2_rbg_moveTo(uint32_t screen, fix32_t x, fix32_t y, fix32_t z)
 				gRotateMoveZ[0]   = z;
 			else
 				gRotateMoveZ[0]   = 0;
+                
+			debugTable[debugIdx++] = (uint32_t)0xDEADBEE1;
+			debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].move.x;
+			debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].move.y;
+			debugTable[debugIdx++] = (uint32_t)gRotateMoveZ[0];
+			debugTable[debugIdx++] = (uint32_t)0xBEE1DEAD;                   
+                
 			if( /*(g_r_reg.k_contrl & 0x00ff) &&*/ gRotateMoveZ[0])
 			    vdp2_rbg_rotate(screen, 0,0,0);
 			break;
@@ -387,6 +442,20 @@ void vdp2_rbg_rotate(uint32_t screen, fix32_t xy, fix32_t z, fix32_t disp)
 	gCurrentMatrix[tbNum][7] = FIXED(0);
 	gCurrentMatrix[tbNum][8] = FIXED(1);
 
+	/*
+    debugTable[debugIdx++] = (uint32_t)0xDEADBEE2;
+	debugTable[debugIdx++] = (uint32_t)gCurrentMatrix[tbNum][0];
+	debugTable[debugIdx++] = (uint32_t)gCurrentMatrix[tbNum][1];
+	debugTable[debugIdx++] = (uint32_t)gCurrentMatrix[tbNum][2];
+	debugTable[debugIdx++] = (uint32_t)gCurrentMatrix[tbNum][3];
+	debugTable[debugIdx++] = (uint32_t)gCurrentMatrix[tbNum][4];
+	debugTable[debugIdx++] = (uint32_t)gCurrentMatrix[tbNum][5];
+	debugTable[debugIdx++] = (uint32_t)gCurrentMatrix[tbNum][6];
+	debugTable[debugIdx++] = (uint32_t)gCurrentMatrix[tbNum][7];
+	debugTable[debugIdx++] = (uint32_t)gCurrentMatrix[tbNum][8];
+	debugTable[debugIdx++] = (uint32_t)0xBEE2DEAD;
+     */ 
+    
 	if(gRbgKtbAddr[tbNum])
 	{
 		gRotateXy[tbNum] += xy;
@@ -819,7 +888,7 @@ void vdp2_rbg_scale(uint32_t screen, fix32_t Sx, fix32_t Sy)
 
    	switch(screen)
    	{
-		case RBG_TB_A:
+    	case RBG_TB_A:
 			gRotregBuff[0].zoom.x = wSx;
 			gRotregBuff[0].zoom.y = wSy;
 			if( g_r_reg.k_contrl & 0x00ff )
@@ -833,6 +902,11 @@ void vdp2_rbg_scale(uint32_t screen, fix32_t Sx, fix32_t Sy)
 			vdp2_rbg_rotate(screen, 0,0,0);
 			break;
    }
+   
+	debugTable[debugIdx++] = (uint32_t)0xDEADBEE3;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].zoom.x;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].zoom.y;
+	debugTable[debugIdx++] = (uint32_t)0xBEE3DEAD;   
 }
 
 /*------------------------------------------------------------------------
@@ -850,6 +924,67 @@ void vdp2_rbg_scale(uint32_t screen, fix32_t Sx, fix32_t Sy)
  */
 void vdp2_rbg_copyReg()
 {
+    uint16_t	pouet = 1;
+	if(oneshot == 0)
+	{
+		oneshot = 1;
+		pouet = 0;
+	}
+
+
+	uint16_t	i;
+	const	uint32_t	pp=(uint32_t)gRotateTableAddress;
+	void	*const	ppA=(void *)pp;
+	void	*const	ppB=(void *)(pp+0x80);
+
+	if(pouet == 0)
+	{
+		debugTable[debugIdx++] = (uint32_t)0xDEADBEE5;
+		debugTable[debugIdx++] = (uint32_t)gK_TableFlag[0];
+		debugTable[debugIdx++] = (uint32_t)gK_TableFlag[0];
+		debugTable[debugIdx++] = (uint32_t)gRbgKtbAddr[0];
+		debugTable[debugIdx++] = (uint32_t)gK_TableNum[0];
+		debugTable[debugIdx++] = (uint32_t)gK_TableFlag[1];
+		debugTable[debugIdx++] = (uint32_t)gRbgKtbAddr[1];
+		debugTable[debugIdx++] = (uint32_t)gK_TableNum[1];
+
+		debugTable[debugIdx++] = (uint32_t)ppA;
+		debugTable[debugIdx++] = (uint32_t)ppB;
+
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].screenst.x;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].screenst.y;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].screenst.z;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].screendlt.x;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].screendlt.y;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].delta.x;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].delta.y;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].matrix_a;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].matrix_b;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].matrix_c;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].matrix_d;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].matrix_e;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].matrix_f;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].viewp.x;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].viewp.y;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].viewp.z;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy1;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].rotatecenter.x;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].rotatecenter.y;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].rotatecenter.z;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy2;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].move.x;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].move.y;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].zoom.x;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].zoom.y;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].k_tab;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].k_delta.x;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].k_delta.y;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy3[0];
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy3[1];
+
+		debugTable[debugIdx++] = (uint32_t)0xBEE5DEAD;
+	}    
+    
 	if(gK_TableFlag[0] && gRbgKtbAddr[0])	
     {
 		vdp2_rbg_memcpyw((void *)gRbgKtbAddr[0],gK_TableBuff[0],gK_TableNum[0]*2);
@@ -875,8 +1010,87 @@ void vdp2_rbg_copyReg()
         vdp2_rbg_memcpyw(pB, &gRotregBuff[1], size);
     }
 	
-    static	uint16_t * regaddr = (uint16_t *)0x25F80B0;
-    vdp2_rbg_memcpyw(regaddr, &g_r_reg, sizeof(g_r_reg));
+    // copy g_r_reg s : 1800B0H - 1800BFH : RPMD. RPRCTL, KTCTL, KTAOF, OVPNRA, OVPNRB, RPTAU, RPTAL 
+    static	uint16_t * regRPMDaddr = (uint16_t *) VDP2(RPMD);
+    vdp2_rbg_memcpyw(regRPMDaddr, &g_r_reg, sizeof(rot_t));
+    
+    //notes:
+    /*
+    g_r_reg.k_contrl should be according to VRAM organization (SCL_SetVramConfig)
+    g_r_reg.k_offset modified in any rotation call
+    g_r_reg.mapover
+
+    */ 
+     
+    
+    
+    
+    //static	uint16_t * regaddr = (uint16_t *)0x25F80B0;
+    //vdp2_rbg_memcpyw(regaddr, &g_r_reg, sizeof(g_r_reg));
+
+	//regaddr[0] = Scl_s_reg.tvmode;		/* add				by C.Y	*/
+	//regaddr[1] = Scl_s_reg.extenbl;		/* add				by C.Y	*/
+/*	regaddr[2]							del read only reg	by C.Y	*/
+	//regaddr[3] = Scl_s_reg.vramsize;		/* add				by C.Y	*/
+/*	regaddr[4]							del read only reg	by C.Y	*/
+/*	regaddr[5]							del read only reg	by C.Y	*/
+/*	regaddr[6]							del reserve			by C.Y	*/
+
+    /*
+	if(pouet == 0)
+	{
+		debugTable[debugIdx++] = (uint32_t)0xDEADBEE6;
+		debugTable[debugIdx++] = (uint32_t)regaddr[0];
+		debugTable[debugIdx++] = (uint32_t)regaddr[1];
+		debugTable[debugIdx++] = (uint32_t)regaddr[2];
+		debugTable[debugIdx++] = (uint32_t)regaddr[3];
+		debugTable[debugIdx++] = (uint32_t)regaddr[4];
+		debugTable[debugIdx++] = (uint32_t)regaddr[5];
+		debugTable[debugIdx++] = (uint32_t)regaddr[6];
+
+		for(ii=7;ii<13;ii++)
+			debugTable[debugIdx++] = (uint32_t)regaddr[ii];
+	}
+
+	//vdp2_rbg_memcpyw( &regaddr[7] , &Scl_s_reg.ramcontrl , 13*2 );
+    
+    i += sizeof(SclSysreg) / 2;
+	if(pouet == 0)
+	{
+		for(ii=i;ii<i+(sizeof(SclDataset)/2);ii++)
+		debugTable[debugIdx++] = (uint32_t)regaddr[i];
+	}
+    vdp2_rbg_memcpyw(&regaddr[i], &Scl_d_reg, sizeof(SclDataset));
+
+    i += sizeof(SclDataset) / 2;
+	if(pouet == 0)
+	{
+		for(ii=i;ii<i+(sizeof(SclNorscl)/2);ii++)
+			debugTable[debugIdx++] = (uint32_t)regaddr[i];
+	}
+    vdp2_rbg_memcpyw(&regaddr[i], &Scl_n_reg, sizeof(SclNorscl));
+
+    i += sizeof(SclNorscl) / 2;
+	if(pouet == 0)
+	{
+		for(ii=i;ii<i+(sizeof(SclRotscl)/2);ii++)
+			debugTable[debugIdx++] = (uint32_t)regaddr[i];
+	}
+    vdp2_rbg_memcpyw(&regaddr[i], &Scl_r_reg, sizeof(SclRotscl));
+
+    i += sizeof(SclRotscl) / 2;
+	if(pouet == 0)
+	{
+		for(ii=i;ii<i+(sizeof(SclWinscl)/2);ii++)
+			debugTable[debugIdx++] = (uint32_t)regaddr[i];
+	}
+    vdp2_rbg_memcpyw(&regaddr[i], &Scl_w_reg, sizeof(SclWinscl));
+    i += sizeof(SclWinscl) / 2;
+	if(pouet == 0)
+	{
+	    debugTable[debugIdx++] = (uint32_t)0xBEE6DEAD;
+    }    
+    */
 }
 
 /*------------------------------------------------------------------------

@@ -64,9 +64,6 @@ void vdp2_rbg_scale(uint32_t screen, fix32_t Sx, fix32_t Sy);
 void vdp2_rbg_memcpyw(void *dest, void *src, uint32_t tcnt);
 void vdp2_rbg_copyReg();
 
-
-
-
 /****************************************************
  *      Rotate Scroll Function Register Cluster     *
  *      Address ranger 1800B0H - 1800BFH            *
@@ -74,8 +71,8 @@ void vdp2_rbg_copyReg();
 typedef struct rot_t{
 	uint16_t	paramode;		/* Rotate Parameter Mode                    RPMD    1800B0H */
 	uint16_t	paramcontrl;	/* Rotate Parameter Read Control            RPRCTL  1800B2H */
-	uint16_t	k_contrl;		/* Keisu Table Control                      KTCTL   1800B4H */       
-	uint16_t	k_offset;		/* Keisu Addres Offset                      KTAOF   1800B6H */
+	uint16_t	k_contrl;		/* Coef Table Control                       KTCTL   1800B4H */       
+	uint16_t	k_offset;		/* Coef Address Offset                      KTAOF   1800B6H */
 	uint16_t	mapover[2];		/* Rotate Scroll Map Over                   OVPNRA  1800B8H + OVPNRB 1800BAH */
 	uint32_t	paramaddr;		/* Rotate Parameter Tabel Address           RPTAU   1800BCH + RPTAL  1800BEH*/
 } rot_t;
