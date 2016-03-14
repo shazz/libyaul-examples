@@ -25,7 +25,17 @@ typedef struct {
         uint8_t type;     
 }  vdp2_timings_t;
 
+/*
+ *  void init_VRAM_access(void)
+ *  Set VRAM access default priorities
+ */
 void init_VRAM_access(int bank_mode);
+
+/*
+ *  void set_VRAM_access(struct vdp2_timings_t[] timings)
+ *  Set VRAM access specific priorities
+ */
+void set_VRAM_access(struct vdp2_timings_t[] timings);
 
 #ifdef __cplusplus
 }

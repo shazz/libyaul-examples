@@ -65,52 +65,53 @@ static void hardware_init(void)
 
 static void init_screen_RBG0(void)
 {
+    struct scrn_bitmap_format rbg0_bitmap_format;
+	uint32_t adr;
+    //struct vram_ctl *vram_ctl;	
+	
 	// init rotation parameters, will be copied at vbl, mode 0
 	//initRotateTable(SCL_VDP2_VRAM_B1+0x10000,2, RBG0, RBG1);
-    uint32_t adr = vdp2_rbg_initRotateTable(VRAM_ADDR_4MBIT(3, 0x0)+0x10000, 1, RBG0, NON);	
+    adr = vdp2_rbg_initRotateTable(VRAM_ADDR_4MBIT(3, 0x0)+0x10000, 1, RBG0, NON);	
     
     (void)sprintf(consbuf, "[01;2HAddress: %08lx", adr);
     cons_buffer(consbuf);     
 	
-	/*
-	// set RBG0 parameters
+	/* We want to be in VBLANK */
+    vdp2_tvmd_display_clear();	
+	
+	// check RAM CTL is set for registers RDBSA00-*B11 -> 1 0011 0000 0111 set RGB0 bitmap on A0 and end table on A1 (!!!!)
+    //MEMORY_WRITE(16, VDP2(RAMCTL), 0x1307);
+	/* set VRAM rotation banks
 	SCL_InitVramConfigTb(&tp);
 	tp.vramModeA  = ON;		
 	tp.vramModeB  = ON;		
 	tp.vramA0     = SCL_RBG0_CHAR;	
 	tp.vramA1     = SCL_RBG0_K;	
-	SCL_SetVramConfig(&tp);
-    
+	SCL_SetVramConfig(&tp);*/
+    set_VRAM_rotation_banks(VRAM_ROT_BITMAP_PATTERN, VRAM_ROT_COEF_TABLE, VRAM_ROT_NOT_USED, VRAM_ROT_NOT_USED, false);
+	
+	
+	/* set RBG0 parameters
 	SCL_InitConfigTb(&Rbg0Scfg);
 	Rbg0Scfg.dispenbl = ON;
 	Rbg0Scfg.coltype  = SCL_COL_TYPE_256;
 	Rbg0Scfg.datatype = SCL_BITMAP;
 	for(i=0;i<MAP_NUM;i++) Rbg0Scfg.plate_addr[i] = SCL_VDP2_VRAM_A0;
 	SCL_SetConfig(SCL_RBG0, &Rbg0Scfg);
-	*/
-
-    /* We want to be in VBLANK */
-    vdp2_tvmd_display_clear();
-
+	*/		
     /* set RGB0 in bitmap mode, 16 col, 512x256 */
-    #ifdef DOIT
-    struct scrn_bitmap_format rbg0_format;
-    //struct vram_ctl *vram_ctl;
+    rbg0_bitmap_format.sbf_scroll_screen 		= SCRN_RBG0; 						/* Normal/rotational background */
+    rbg0_bitmap_format.sbf_cc_count 			= SCRN_CCC_PALETTE_16; 				/* color mode */
+    rbg0_bitmap_format.sbf_bitmap_size.width 	= 512; 								/* Bitmap sizes: 512x256, 512x512, 1024x256, 1024x512 */
+    rbg0_bitmap_format.sbf_bitmap_size.height 	= 256;
+    rbg0_bitmap_format.sbf_bitmap_pattern 		= VRAM_ADDR_4MBIT(0, 0x0); 			/* Bitmap pattern lead address */
+    rbg0_bitmap_format.sbf_color_palette 		= (uint32_t)_rbg0_color_palette;
+    rbg0_bitmap_format.sbf_rp_mode				= 0; 								/*  Rotation parameter mode:   Mode 0: Rotation Parameter A, Mode 1: Rotation Parameter B, Mode 2: Swap Coefficient Data Read, Mode 3: Swap via Rotation Parameter Window */
 
-    rbg0_format.sbf_scroll_screen 		= SCRN_RBG0; 						/* Normal/rotational background */
-    rbg0_format.sbf_cc_count 			= SCRN_CCC_PALETTE_16; 				/* color mode */
-    rbg0_format.sbf_bitmap_size.width 	= 512; 								/* Bitmap sizes: 512x256, 512x512, 1024x256, 1024x512 */
-    rbg0_format.sbf_bitmap_size.height 	= 256;
-    rbg0_format.sbf_bitmap_pattern 		= VRAM_ADDR_4MBIT(0, 0x0); 		/* Bitmap pattern lead address */
-    rbg0_format.sbf_color_palette 		= (uint32_t)_rbg0_color_palette;
-    rbg0_format.sbf_rp_mode				= 0; 								/*  Rotation parameter mode:   Mode 0: Rotation Parameter A, Mode 1: Rotation Parameter B, Mode 2: Swap Coefficient Data Read, Mode 3: Swap via Rotation Parameter Window */
-    #endif
-    
 	// check BGON is set for RGB0 -> R0-TP-ON + R0-ON
-    //vdp2_scrn_bitmap_format_set(&rbg0_format);
+    //vdp2_scrn_bitmap_format_set(&rbg0_bitmap_format);
+	
 
-	// check RAM CTL is set for registers RDBSA00-*B11 -> 1 0011 0000 0111 set RGB0 bitmap on A0 and end table on A1 (!!!!)
-    //MEMORY_WRITE(16, VDP2(RAMCTL), 0x1307);
 
     /*vram_ctl = vdp2_vram_control_get();
     vram_ctl->vram_cycp.pt[0].t7 = VRAM_CTL_CYCP_CHPNDR_NBG0; // needed ?

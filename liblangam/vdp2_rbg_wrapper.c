@@ -194,6 +194,27 @@ uint32_t vdp2_rbg_initRotateTable(uint32_t address, uint16_t mode, uint32_t rA, 
 		gRotregBuff[1].zoom.y      = gRotregBuff[0].zoom.y;
     }
 
+	/*
+	 * RPTAU[2-0] : RPTA18~RPTA16
+	 * RPTAL[15-1] : RPTA15~RPTA1 
+	 * RPTA6 bit is ignored even if data is written. The bit is set at 0 for rotation parameterA, and fixed at 1 for rotation parameter B. (table size = 0x60 = 110 0000)
+	 * the most significant bit of the address is ignored.
+	 * 
+	 * (Lead address of rotation parameter A) = (rotation parameter table address register value highest 12 bit) X 0x100 + (rotation parameter table address register value lowest 5 bit) X 0x4
+	 * (Lead address of rotation parameter B) = (rotation parameter table address register value highest 12 bit) X 0x100 + (rotation parameter table address register value lowest 5 bit) X 0x4 + 0x80
+	 * 
+	 * For example, when 0x0170 or 0x0130 is selected, the lead address of rotation parameter A is 0x0260, and the lead address of rotation parameter B is 0x02E0.
+	 * ex : table at VRAM(0,0) = 0x25E1 0000 = 10 0101 1110 0001 0000 0000 0000 0000 & 0x0007ff80 = 0x1 0000
+	 * 							 0x1 0000 >> 1 = 0x8000
+	 * 							 H = 0x8000, L=0x0
+	 * 
+	 */ 	
+	//						keep 12 / del  x100      keep 5 / del x4
+	//        xxxxxxxxxx... .... .... .xxxxxxxx + xxxxxxxxxx... ..xx  			7c 111 1100
+	// high = address & 111 1111 1111 1000 0000 + address & 111 1100			3e  11 1110
+
+	// High: get 12 highest bits :keep 16 bits, mask 7 lower bits then remove lowest as most significant bit of the address is ignored ? to get 18 bits len ?
+	// Low: keep lowest 7 bits, mask bit 0, divide by 4 to remove the last 2 bits (0x4), why removing bit 0 as the shift will remove it too ?
     addressW = ((address & 0x0007ff80)>>1) + (address & 0x0000003e)/4;
     g_r_reg.paramaddr = addressW;
     // write RPTAU+RPTAL in one shot
@@ -225,11 +246,11 @@ uint32_t vdp2_rbg_initRotateTable(uint32_t address, uint16_t mode, uint32_t rA, 
 	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].viewp.x;
 	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].viewp.y;
 	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].viewp.z;
-	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy1;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].ignored1;
 	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].rotatecenter.x;
 	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].rotatecenter.y;
 	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].rotatecenter.z;
-	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy2;
+	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].ignored2;
 	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].move.x;
 	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].move.y;
 	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].zoom.x;
@@ -237,8 +258,6 @@ uint32_t vdp2_rbg_initRotateTable(uint32_t address, uint16_t mode, uint32_t rA, 
 	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].k_tab;
 	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].k_delta.x;
 	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].k_delta.y;
-	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy3[0];
-	debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy3[1];
     
     return((uint32_t)debugTable);
 }
@@ -909,12 +928,72 @@ void vdp2_rbg_scale(uint32_t screen, fix32_t Sx, fix32_t Sy)
 	debugTable[debugIdx++] = (uint32_t)0xBEE3DEAD;   
 }
 
+/*
+ * void vdp2_rbg_set_VRAM_banks(int vram_a0, int vram_a1, int vram_b0, int vram_b1, bool useCRAM)
+ * Set RAMCTL bits to define where the rotation tables are located in VRAM and CRAM
+ */ 
+void vdp2_rbg_set_VRAM_banks(int vram_a0, int vram_a1, int vram_b0, int vram_b1, bool useCRAM)
+{
+	uint16_t ramctl = MEMORY_READ(16, VDP2(RAMCTL));
+	uint16_t rdbs = (vram_a0 & 0x3) | ((vram_a1 & 0x3) << 2) | ((vram_b0 & 0x3) << 4) | ((vram_b1 & 0x3) << 6) 
+	
+	if(useCRAM) 
+		ramctl |= 0x8000;
+	
+	ramctl |= rdbs;
+	
+	MEMORY_WRITE(16, VDP2(RAMCTL), ramctl);
+	
+	if(vram_a0 == RBG0_VRAM_BANK_COEF_TABLE)	
+	{
+		g_r_reg.k_offset &= 0xff00;
+	}
+	else if(vram_a0 == RBG1_VRAM_BANK_COEF_TABLE)	
+	{
+		g_r_reg.k_offset &= 0x00ff;
+	}
+	
+	if(vram_a1 == RBG0_VRAM_BANK_COEF_TABLE)	
+	{
+		g_r_reg.k_offset &= 0xff00;
+		g_r_reg.k_offset |= 0x0001;
+	}
+	else if(vram_a0 == RBG1_VRAM_BANK_COEF_TABLE)	
+	{
+		g_r_reg.k_offset &= 0x00ff;
+		g_r_reg.k_offset |= 0x0100;
+	}
+	
+	if(vram_b0 == RBG0_VRAM_BANK_COEF_TABLE)	
+	{
+		g_r_reg.k_offset &= 0xff00;
+		g_r_reg.k_offset |= 0x0002;
+	}
+	else if(vram_b0 == RBG1_VRAM_BANK_COEF_TABLE)	
+	{
+		g_r_reg.k_offset &= 0x00ff;
+		g_r_reg.k_offset |= 0x0200;
+	}	
+	
+	if(vram_b1 == RBG0_VRAM_BANK_COEF_TABLE)	
+	{
+		g_r_reg.k_offset &= 0xff00;
+		g_r_reg.k_offset |= 0x0003;
+	}
+	else if(vram_b1 == RBG1_VRAM_BANK_COEF_TABLE)	
+	{
+		g_r_reg.k_offset &= 0x00ff;
+		g_r_reg.k_offset |= 0x0300;
+	}		
+}
+
 /*------------------------------------------------------------------------
  *
  * NAME : copyReg
  *
  * DESCRIPTION
  *		Copy parameters to rotation scroll H/W Registers
+ * 		TODO: use SCU DMA
  *
  * CAVEATS
  * 		used by interrupt routine only(V_BLANK)
@@ -967,11 +1046,11 @@ void vdp2_rbg_copyReg()
 		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].viewp.x;
 		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].viewp.y;
 		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].viewp.z;
-		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy1;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].ignored1;
 		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].rotatecenter.x;
 		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].rotatecenter.y;
 		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].rotatecenter.z;
-		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy2;
+		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].ignored2;
 		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].move.x;
 		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].move.y;
 		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].zoom.x;
@@ -979,12 +1058,11 @@ void vdp2_rbg_copyReg()
 		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].k_tab;
 		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].k_delta.x;
 		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].k_delta.y;
-		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy3[0];
-		debugTable[debugIdx++] = (uint32_t)gRotregBuff[0].dummy3[1];
 
 		debugTable[debugIdx++] = (uint32_t)0xBEE5DEAD;
 	}    
     
+	/* */
 	if(gK_TableFlag[0] && gRbgKtbAddr[0])	
     {
 		vdp2_rbg_memcpyw((void *)gRbgKtbAddr[0],gK_TableBuff[0],gK_TableNum[0]*2);
@@ -996,36 +1074,36 @@ void vdp2_rbg_copyReg()
 		gK_TableFlag[1] = 0;
 	}
 
-    const	uint32_t	size = 0x60;	/*	sizeof(struct SclRotreg);	*/
+    const	uint32_t	size = 0x60;	/*	not sizeof(struct rotreg_t) don't copy at padding the end of the struct */
     const	uint32_t	p= (uint32_t) gRotateTableAddress;
     void	*const	pA=(void *)p;
-    void	*const	pB=(void *)(p+0x80);
+    void	*const	pB=(void *)(p+0x80);	/* padding between TA and TB*/
 
     /*
-    **  SclRotateTableAddress
-    */
+     *  copy rot params table A and B
+     */
     if (pA != NULL)
     {
         vdp2_rbg_memcpyw(pA, &gRotregBuff[0], size);
+		
+		// could be optimized if this table is not used
         vdp2_rbg_memcpyw(pB, &gRotregBuff[1], size);
     }
 	
-    // copy g_r_reg s : 1800B0H - 1800BFH : RPMD. RPRCTL, KTCTL, KTAOF, OVPNRA, OVPNRB, RPTAU, RPTAL 
-    static	uint16_t * regRPMDaddr = (uint16_t *) VDP2(RPMD);
-    vdp2_rbg_memcpyw(regRPMDaddr, &g_r_reg, sizeof(rot_t));
-    
-    //notes:
-    /*
-    g_r_reg.k_contrl should be according to VRAM organization (SCL_SetVramConfig)
-    g_r_reg.k_offset modified in any rotation call
-    g_r_reg.mapover in case of Cell scroll (over pattern name)
-    
-
-    */ 
-     
-    
-    
-    
+	/*
+     * Update VDP2 registers copy g_r_reg s : 1800B0H - 1800BFH : RPMD. RPRCTL, KTCTL, KTAOF, OVPNRA, OVPNRB, RPTAU, RPTAL 
+	 */ 
+    //static	uint16_t * regRPMDaddr = (uint16_t *) VDP2(RPMD);
+    //vdp2_rbg_memcpyw(regRPMDaddr, &g_r_reg, sizeof(rot_t));
+	MEMORY_WRITE(16, VDP2(RPMD), g_r_reg.paramode);							// set in init, same in SBL
+	MEMORY_WRITE(16, VDP2(RPRCTL), g_r_reg.paramcontrl);					// never set, even in SBL
+	MEMORY_WRITE(16, VDP2(KTCTL), g_r_reg.k_contrl);						// set in various rotate
+	MEMORY_WRITE(16, VDP2(KTAOF), g_r_reg.k_offset);						// set in vdp2_rbg_set_VRAM_banks, probably incomplete (SCL_SetVramConfig only)
+	MEMORY_WRITE(16, VDP2(OVPNRA), g_r_reg.mapover[0]);						// never set, even in SBL. In case of Cell scroll (over pattern name) ?
+	MEMORY_WRITE(16, VDP2(OVPNRB), g_r_reg.mapover[1]);						// never set, even in SBL
+	MEMORY_WRITE(16, VDP2(RPTAU), g_r_reg.paramaddr & 0xFFFF);				// set in init, same in SBL
+	MEMORY_WRITE(16, VDP2(RPTAL), (g_r_reg.paramaddr >> 16)  & 0xFFFF);		// set in init, same in SBL
+	    
     //static	uint16_t * regaddr = (uint16_t *)0x25F80B0;
     //vdp2_rbg_memcpyw(regaddr, &g_r_reg, sizeof(g_r_reg));
 

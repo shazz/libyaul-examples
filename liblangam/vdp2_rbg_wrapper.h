@@ -22,6 +22,17 @@ extern "C" {
 #define RBG_TB_A	RBG0
 #define RBG_TB_B	RBG1
 
+#define VRAM_BANK_NOT_USED 					0
+#define RBG0_VRAM_BANK_COEF_TABLE 			1
+#define RBG0_VRAM_BANK_PATTERN_NAME 		2
+#define RBG0_VRAM_BANK_CHAR_PATTERN			3
+#define RBG0_VRAM_BANK_BITMAP_PATTERN		3
+#define RBG1_VRAM_BANK_COEF_TABLE 			5
+#define RBG1_VRAM_BANK_PATTERN_NAME 		6
+#define RBG1_VRAM_BANK_CHAR_PATTERN			7
+#define RBG1_VRAM_BANK_BITMAP_PATTERN		7
+
+
 #if 0
 
 fix32_t SPR_MULF(fix32_t a, fix32_t b);
@@ -64,17 +75,25 @@ void vdp2_rbg_scale(uint32_t screen, fix32_t Sx, fix32_t Sy);
 void vdp2_rbg_memcpyw(void *dest, void *src, uint32_t tcnt);
 void vdp2_rbg_copyReg();
 
+/*
+ * void vdp2_rbg_set_VRAM_banks(int vram_a0, int vram_a1, int vram_b0, int vram_b1, bool useCRAM)
+ * Set RAMCTL bits to define where the rotation tables are located in VRAM and CRAM
+ * 
+ * Should be replaced by complete vdp2_vram_control_set in libyaul
+ */
+void vdp2_rbg_set_VRAM_banks(int vram_a0, int vram_a1, int vram_b0, int vram_b1, bool useCRAM);
+
 /****************************************************
  *      Rotate Scroll Function Register Cluster     *
  *      Address ranger 1800B0H - 1800BFH            *
  ****************************************************/
 typedef struct rot_t{
-	uint16_t	paramode;		/* Rotate Parameter Mode                    RPMD    1800B0H */
-	uint16_t	paramcontrl;	/* Rotate Parameter Read Control            RPRCTL  1800B2H */
-	uint16_t	k_contrl;		/* Coef Table Control                       KTCTL   1800B4H */       
-	uint16_t	k_offset;		/* Coef Address Offset                      KTAOF   1800B6H */
-	uint16_t	mapover[2];		/* Rotate Scroll Map Over                   OVPNRA  1800B8H + OVPNRB 1800BAH */
-	uint32_t	paramaddr;		/* Rotate Parameter Tabel Address           RPTAU   1800BCH + RPTAL  1800BEH*/
+	uint16_t	paramode;		/* Rotate Parameter Mode                    RPMD    0x1800B0 */
+	uint16_t	paramcontrl;	/* Rotate Parameter Read Control            RPRCTL  0x1800B2 */
+	uint16_t	k_contrl;		/* Coef Table Control                       KTCTL   0x1800B4 */       
+	uint16_t	k_offset;		/* Coef Address Offset                      KTAOF   0x1800B6 */
+	uint16_t	mapover[2];		/* Rotate Scroll Map Over                   OVPNRA  0x1800B8 + OVPNRB 0x1800BA */
+	uint32_t	paramaddr;		/* Rotate Parameter Table Address           RPTAU   0x1800BC + RPTAL  0x1800BE*/
 } rot_t;
 
 /**************************************************
@@ -102,27 +121,29 @@ typedef struct  xyz_t {
 	 fix32_t         z;
 } xyz_t;
 
+/**************************************************
+ *      Rotation parameter table Definition       *
+ **************************************************/
 typedef struct rotreg_t {
-	xyz_t		screenst;
-	xy_t		screendlt;
-	xy_t		delta;
-	fix32_t		matrix_a;
-	fix32_t		matrix_b;
-	fix32_t		matrix_c;
-	fix32_t		matrix_d;
-	fix32_t		matrix_e;
-	fix32_t		matrix_f;
-	xyz16_t		viewp;
-	uint16_t	dummy1;
-	xyz16_t		rotatecenter;
-	uint16_t	dummy2;
-	xy_t		move;
-	xy_t		zoom;
-	fix32_t		k_tab;
-	xy_t		k_delta;
-/*	fix32_t		dummy3[8];	*/
-	fix32_t		dummy3[2];
-} rotreg_t;
+	xyz_t		screenst;		/* Screen start coord Xst,Yst,Zst (int-frac) 12 */
+	xy_t		screendlt;		/* Screen vertical coord delta dXst,dYst (int-frac) 8 */
+	xy_t		delta;			/* Screen horizontal coord delta dX,dY (int-frac) 8 */
+	fix32_t		matrix_a;		/* Rot matric param A (int-frac) 4 */
+	fix32_t		matrix_b;		/* Rot matric param B (int-frac) 4 */
+	fix32_t		matrix_c;		/* Rot matric param C (int-frac) 4 */
+	fix32_t		matrix_d;		/* Rot matric param D (int-frac) 4 */
+	fix32_t		matrix_e;		/* Rot matric param E (int-frac) 4 */
+	fix32_t		matrix_f;		/* Rot matric param F (int-frac) 4 */
+	xyz16_t		viewp;			/* Viewpoint coord Px, Py, Pz (int) 6 */
+	uint16_t	ignored1;		/* ignored 2 */
+	xyz16_t		rotatecenter;	/* Center point coord Cx, Cy, Cz (int) 6 */
+	uint16_t	ignored2;		/* ignored 2 */
+	xy_t		move;			/* Horiz shift Mx, My (int-frac) 8 */
+	xy_t		zoom;			/* Scaling coef kx, ky (int-frac) 8 */
+	fix32_t		k_tab;			/* Coef table start address KAst (int-frac) 4 */
+	xy_t		k_delta;		/* Coef table vertical and horizontal address delta dKAst, dKAx (int-frac) 8 */
+	Fixed32		ignored3[2];	/* padding for memory alignment I guess between TA and TB, I would have set 8 and not 2 get get aligned at 0x80 instead of 0x68, see comment in SBL struct. Or due to divide by 4 ? */
+} rotreg_t; /* size 0x60 + 0x8 */
 
 
 #ifdef __cplusplus

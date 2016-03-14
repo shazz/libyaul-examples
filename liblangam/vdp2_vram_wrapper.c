@@ -68,10 +68,10 @@ void init_VRAM_access(int bank_mode)
 }
 
 /*
- *  void init_VRAM_access(void)
- *  Set VRAM access default priorities
+ *  void set_VRAM_access(struct vdp2_timings_t[] timings)
+ *  Set VRAM access specific priorities
  */
-void init_VRAM_access(struct vdp2_timings_t[] timings)
+void set_VRAM_access(struct vdp2_timings_t[] timings)
 {
     struct vram_ctl *vram_ctl;
     uint8_t index;
