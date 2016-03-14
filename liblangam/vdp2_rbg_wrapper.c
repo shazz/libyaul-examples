@@ -1018,7 +1018,8 @@ void vdp2_rbg_copyReg()
     /*
     g_r_reg.k_contrl should be according to VRAM organization (SCL_SetVramConfig)
     g_r_reg.k_offset modified in any rotation call
-    g_r_reg.mapover
+    g_r_reg.mapover in case of Cell scroll (over pattern name)
+    
 
     */ 
      
