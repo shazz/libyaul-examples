@@ -1,19 +1,20 @@
 #include <yaul.h>
 #include <stdlib.h>
 
-#include "kingkong.h"
+#include "test256.h"
 
 /*
  * VDP2 VRAM Organization
  * Bank A0
  * - NBG0 plane data, from 0x0 to 0x01000 (4096 bytes, 1 word per cell, 512x256px)
+ * - NBG0 cell pattern data, from 0x00000 to 0x0DD80 (56704 bytes, 886 8x8 cells in 8bits color)
+ * => total : 56704 bytes instead of 131072 bytes in bitmap mode which fits in 128KB bank
  * 
  * Bank A1
  * - Nothing
  *  
  * Bank B0
- * - NBG0 cell pattern data, from 0x01000 to 0x016780 (87936 bytes, 1374 8x8 cells in 8bits color)
- * => total : 87936 bytes instead of 131072 bytes in bitmap mode
+ * - Nothing
  * 
  * Bank B1
  * - Nothing
@@ -44,8 +45,8 @@ static uint16_t *_nbg0_planes[4] = {
 }; // a plane needs 2048 u16 (512x256) or 0x1000 bytes (4096)
 
 /* VRAM B0 after plane */
-static uint32_t *_nbg0_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(2, 0x0);
-static uint16_t _nbg0_cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)VRAM_ADDR_4MBIT(2, 0x0));
+static uint32_t *_nbg0_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(0, 0x1000);
+static uint16_t _nbg0_cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)VRAM_ADDR_4MBIT(0, 0x1000));
 
 /* CRAM */
 static uint32_t *_nbg0_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(0, 0, 0);
@@ -116,22 +117,14 @@ void init_scrollscreen_nbg0(void)
     vram_ctl->vram_cycp.pt[0].t2 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[0].t1 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[0].t0 = VRAM_CTL_CYCP_NO_ACCESS;
-    
-    vram_ctl->vram_cycp.pt[2].t7 = VRAM_CTL_CYCP_PNDR_NBG0;
-    vram_ctl->vram_cycp.pt[2].t6 = VRAM_CTL_CYCP_PNDR_NBG0;
-    vram_ctl->vram_cycp.pt[2].t5 = VRAM_CTL_CYCP_CHPNDR_NBG0;
-    vram_ctl->vram_cycp.pt[2].t4 = VRAM_CTL_CYCP_CHPNDR_NBG0;
-    vram_ctl->vram_cycp.pt[2].t3 = VRAM_CTL_CYCP_NO_ACCESS;
-    vram_ctl->vram_cycp.pt[2].t2 = VRAM_CTL_CYCP_NO_ACCESS;
-    vram_ctl->vram_cycp.pt[2].t1 = VRAM_CTL_CYCP_NO_ACCESS;
-    vram_ctl->vram_cycp.pt[2].t0 = VRAM_CTL_CYCP_NO_ACCESS;    
+      
     vdp2_vram_control_set(vram_ctl);
 
     /* Copy the palette data */
-    memcpy(_nbg0_color_palette, cell_palette, sizeof(cell_palette));
+    memcpy(_nbg0_color_palette, test256_cell_palette, sizeof(test256_cell_palette));
 
     /* Copy the cell data */
-    memcpy(_nbg0_cell_data, cell_data, sizeof(cell_data));
+    memcpy(_nbg0_cell_data, test256_cell_data, sizeof(test256_cell_data));
 
     /* Build the pattern data */   
     uint32_t i;
@@ -139,7 +132,7 @@ void init_scrollscreen_nbg0(void)
 
 	for (i = 0; i < 2048; i++) 
     {
-        uint16_t cell_data_number = _nbg0_cell_data_number + pattern_name_table[i];
+        uint16_t cell_data_number = _nbg0_cell_data_number + test256_pattern_name_table[i];
         nbg0_page0[i] = cell_data_number | _nbg0_palette_number;
 	}
 
