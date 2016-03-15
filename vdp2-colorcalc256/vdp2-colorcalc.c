@@ -227,7 +227,7 @@ void init(void)
     MEMORY_WRITE(16, VDP2(CCCTL), 0x5 /* (1 << 2) | (1 << 0)*/);    
 
     MEMORY_WRITE(16, VDP2(CCRNA), 0x1F);
-    MEMORY_WRITE(16, VDP2(CCRNB), 0x1F);
+    MEMORY_WRITE(16, VDP2(CCRNB), 0x0);
     
     /* DMA Indirect list, aligned on 64 bytes due to more than 24bytes size (6*4*3=72) */
     uint32_t dma_tbl[] __attribute__((aligned(64))) = { 
@@ -244,9 +244,9 @@ void init(void)
 	init_scrollscreen_nbg2();
 	set_VRAM_access();
     
-    g_cc_NBG0 = 0x1F;
-    g_cc_NBG2 = 0x1F;
     
+    g_cc_NBG0 = 0x1F;
+    g_cc_NBG2 = 0x0;
 }
 
 void read_digital_pad(void)
