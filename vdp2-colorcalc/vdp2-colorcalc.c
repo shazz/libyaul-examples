@@ -323,8 +323,9 @@ void read_digital_pad(void)
 		MEMORY_WRITE(16, VDP2(CCRNA), g_cc_NBG0 & 0x1F);
 		MEMORY_WRITE(16, VDP2(CCRNB), g_cc_NBG2 & 0x1F);    
 	}  
-				
+        
 }
+
 int main(void)
 {
         irq_mux_t *vblank_in;

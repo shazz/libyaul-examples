@@ -16,13 +16,13 @@
 #include "blurry_256.h"
 #include "blurry_head_256.h"
 
-#define PLANE0_PNT  blurry_256_pattern_name_table
-#define PLANE0_CD   blurry_256_cell_data
-#define PLANE0_CP   blurry_256_cell_palette
+#define PLANE2_PNT  blurry_256_pattern_name_table
+#define PLANE2_CD   blurry_256_cell_data
+#define PLANE2_CP   blurry_256_cell_palette
 
-#define PLANE2_PNT  blurry_head_256_pattern_name_table
-#define PLANE2_CD   blurry_head_256_cell_data
-#define PLANE2_CP   blurry_head_256_cell_palette
+#define PLANE0_PNT  blurry_head_256_pattern_name_table
+#define PLANE0_CD   blurry_head_256_cell_data
+#define PLANE0_CP   blurry_head_256_cell_palette
 
 
 struct smpc_peripheral_digital g_digital;
@@ -35,7 +35,7 @@ static void vblank_out_handler(irq_mux_handle_t *);
 uint8_t g_cc_NBG0, g_cc_NBG2;
 uint8_t g_ecc_NBG0;
 
-#define NBG0_VRAM_PAL_NB 2
+#define NBG0_VRAM_PAL_NB 0
 #define NBG2_VRAM_PAL_NB 1
 
 static uint16_t *_nbg0_planes[4] = {
@@ -71,8 +71,8 @@ static uint16_t _nbg2_cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint
 /* CRAM */
 static uint32_t *_nbg0_color_palette = (uint32_t *)CRAM_MODE_0_OFFSET(NBG0_VRAM_PAL_NB, 0, 0);
 static uint32_t *_nbg2_color_palette = (uint32_t *)CRAM_MODE_0_OFFSET(NBG2_VRAM_PAL_NB, 0, 0);
-static uint16_t _nbg0_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE_0_OFFSET(NBG0_VRAM_PAL_NB, 0, 0));
-static uint16_t _nbg2_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE_0_OFFSET(NBG2_VRAM_PAL_NB, 0, 0));
+static uint16_t _nbg0_palette_number = VDP2_PN_CONFIG_1_PALETTE_NUMBER(CRAM_MODE_0_OFFSET(NBG0_VRAM_PAL_NB, 0, 0));
+static uint16_t _nbg2_palette_number = VDP2_PN_CONFIG_1_PALETTE_NUMBER(CRAM_MODE_0_OFFSET(NBG2_VRAM_PAL_NB, 0, 0));
 
 static unsigned int joyLeft = 0, joyRight = 0, joyUp = 0, joyDown = 0;    
 static unsigned int joyA= 0, joyB = 0, joyL = 0, joyR = 0;    
@@ -120,7 +120,7 @@ void init_scrollscreen_nbg2(void)
 {
 	/* NBG2 stuff is located in B0 bank */
 
-    /* set NBG2 in cell mode, 16 col, 1x1 */
+    /* set NBG2 in cell mode, 256 col, 1x1 */
     struct scrn_cell_format nbg2_format;
 
 	nbg2_format.scf_scroll_screen = SCRN_NBG2;
@@ -226,7 +226,7 @@ void init(void)
     MEMORY_WRITE(16, VDP2(CCCTL), 0);    
     MEMORY_WRITE(16, VDP2(CCCTL), 0x5 /* (1 << 2) | (1 << 0)*/);    
 
-    MEMORY_WRITE(16, VDP2(CCRNA), 0x0);
+    MEMORY_WRITE(16, VDP2(CCRNA), 0x1F);
     MEMORY_WRITE(16, VDP2(CCRNB), 0x1F);
     
     /* DMA Indirect list, aligned on 64 bytes due to more than 24bytes size (6*4*3=72) */
@@ -244,7 +244,7 @@ void init(void)
 	init_scrollscreen_nbg2();
 	set_VRAM_access();
     
-    g_cc_NBG0 = 0x0;
+    g_cc_NBG0 = 0x1F;
     g_cc_NBG2 = 0x1F;
     
 }
