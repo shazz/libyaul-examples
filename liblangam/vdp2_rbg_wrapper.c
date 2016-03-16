@@ -218,10 +218,8 @@ uint32_t vdp2_rbg_initRotateTable(uint32_t address, uint16_t mode, uint32_t rA, 
     addressW = ((address & 0x0007ff80)>>1) + (address & 0x0000003e)/4;
     g_r_reg.paramaddr = addressW;
     // write RPTAU+RPTAL in one shot
-    MEMORY_WRITE(32, VDP2(RPTAU), addressW)
+    MEMORY_WRITE(32, VDP2(RPTAU), addressW);
     
-    
-
 	debugTable[debugIdx++] = (uint32_t)0xDEADBEEF;
 	debugTable[debugIdx++] = (uint32_t)&gRotregBuff[0];
 	debugTable[debugIdx++] = (uint32_t)gRotateTableAddress;
@@ -935,10 +933,9 @@ void vdp2_rbg_scale(uint32_t screen, fix32_t Sx, fix32_t Sy)
 void vdp2_rbg_set_VRAM_banks(int vram_a0, int vram_a1, int vram_b0, int vram_b1, bool useCRAM)
 {
 	uint16_t ramctl = MEMORY_READ(16, VDP2(RAMCTL));
-	uint16_t rdbs = (vram_a0 & 0x3) | ((vram_a1 & 0x3) << 2) | ((vram_b0 & 0x3) << 4) | ((vram_b1 & 0x3) << 6) 
+	uint16_t rdbs = (vram_a0 & 0x3) | ((vram_a1 & 0x3) << 2) | ((vram_b0 & 0x3) << 4) | ((vram_b1 & 0x3) << 6); 
 	
-	if(useCRAM) 
-		ramctl |= 0x8000;
+	if(useCRAM) ramctl |= 0x8000;
 	
 	ramctl |= rdbs;
 	

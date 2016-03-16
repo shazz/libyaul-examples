@@ -142,7 +142,7 @@ typedef struct rotreg_t {
 	xy_t		zoom;			/* Scaling coef kx, ky (int-frac) 8 */
 	fix32_t		k_tab;			/* Coef table start address KAst (int-frac) 4 */
 	xy_t		k_delta;		/* Coef table vertical and horizontal address delta dKAst, dKAx (int-frac) 8 */
-	Fixed32		ignored3[2];	/* padding for memory alignment I guess between TA and TB, I would have set 8 and not 2 get get aligned at 0x80 instead of 0x68, see comment in SBL struct. Or due to divide by 4 ? */
+	fix32_t		ignored3[2];	/* padding for memory alignment I guess between TA and TB, I would have set 8 and not 2 get get aligned at 0x80 instead of 0x68, see comment in SBL struct. Or due to divide by 4 ? */
 } rotreg_t; /* size 0x60 + 0x8 */
 
 
