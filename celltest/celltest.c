@@ -49,8 +49,8 @@ static uint32_t *_nbg3_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(0, 0x1000);
 static uint16_t _nbg3_cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)VRAM_ADDR_4MBIT(0, 0x1000));
 
 /* CRAM */
-static uint32_t *_nbg3_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(0, 0, 0);
-static uint16_t _nbg3_palette_number = VDP2_PN_CONFIG_1_PALETTE_NUMBER(CRAM_MODE_1_OFFSET(0, 0, 0));
+static uint32_t *_nbg3_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(1, 0, 0);
+static uint16_t _nbg3_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE_1_OFFSET(1, 0, 0));
 
 static void hardware_init(void)
 {
@@ -120,17 +120,17 @@ void init_scrollscreen_nbg3(void)
     vdp2_vram_control_set(vram_ctl);
 
     /* Copy the palette data */
-    memcpy(_nbg3_color_palette, cell_palette, sizeof(cell_palette));
+    memcpy(_nbg3_color_palette, kingkong_cell_palette, sizeof(kingkong_cell_palette));
 
     /* Copy the cell data */
-    memcpy(_nbg3_cell_data, cell_data, sizeof(cell_data));
+    memcpy(_nbg3_cell_data, kingkong_cell_data, sizeof(kingkong_cell_data));
 
     /* Build the pattern data */   
     uint32_t i;
     uint16_t *nbg3_page0 = _nbg3_planes[0];
 
 	for (i = 0; i < 2048; i++) {
-			uint16_t cell_data_number = _nbg3_cell_data_number + pattern_name_table[i];
+			uint16_t cell_data_number = _nbg3_cell_data_number + kingkong_pattern_name_table[i];
 			nbg3_page0[i] = cell_data_number | _nbg3_palette_number;
 	}
 
@@ -139,19 +139,24 @@ void init_scrollscreen_nbg3(void)
 
 int main(void)
 {
+    uint32_t padButton = 0;
 	hardware_init();
     init_scrollscreen_nbg3();
 
-	static uint16_t back_screen_color[] = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
-	vdp2_scrn_back_screen_set(/* single_color = */ true, VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color, 1);
+	static uint16_t back_screen_color = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
+	vdp2_scrn_back_screen_color_set(VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color);  
 
 	/* Main loop */
-	for(;;)
+	while (!padButton) 
 	{
 	  	vdp2_tvmd_vblank_in_wait();
-
+        
+        padButton = g_digital.released.button.start; 	
+                    
 	  	vdp2_tvmd_vblank_out_wait();
 	}
+    
+    abort();	
 
 	return 0;
 }
