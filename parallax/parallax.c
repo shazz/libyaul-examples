@@ -7,7 +7,6 @@
 #include "back2.h"
 #include "back3.h"
 #include "back4.h"
-#include "tables.h"
 #include "sprite.h"
 #include "boss.h"
 #include "plasma.h"
@@ -171,7 +170,7 @@ void init_scrollscreen_nbg(int screen, uint16_t *planes[], uint32_t *cell_data_p
     uint16_t *nbg_page0 = planes[0];
     uint16_t *nbg_page1 = planes[1];
   
-    uint16_t palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)_nbg3_color_palette);
+    uint16_t palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)palette_ptr);
     uint16_t cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cell_data_ptr);
 
 	for (i = 0; i < 4096; i++) 
