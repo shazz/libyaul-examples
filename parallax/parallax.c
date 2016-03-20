@@ -9,6 +9,8 @@
 #include "back4.h"
 #include "tables.h"
 #include "sprite.h"
+#include "boss.h"
+#include "plasma.h"
 
 /*
  * VDP2 VRAM Organization
@@ -141,14 +143,24 @@ static uint16_t _nbg3_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE
 
 
 // sprites 
-static uint32_t _sprite_cell_data = (uint32_t)CHAR(0x220);
-static uint32_t _sprite_boss_cell_data = (uint32_t)CHAR(0x1020);
+static uint32_t _spaceship_char_pat_data = (uint32_t)CHAR(0x220);
+static uint32_t _boss_char_pat_data = (uint32_t)CHAR(0x1020);
+static uint32_t _plasma_char_pat_data = (uint32_t)CHAR(0x7700);
+
+struct vdp1_cmdt_sprite normal_sprite_spaceship_pointer; 
+struct vdp1_cmdt_sprite normal_sprite_boss_pointer; 
+struct vdp1_cmdt_sprite normal_sprite_plasma_pointer; 
+struct vdp1_cmdt_system_clip_coord system_clip;
+struct vdp1_cmdt_user_clip_coord user_clip;
+struct vdp1_cmdt_local_coord local;
 
 // joypad
-static unsigned int joyLeft = 0, joyRight = 0, joyUp = 0, joyDown = 0;    
+static unsigned int joyLeft = 0, joyRight = 0, joyUp = 0, joyDown = 0, joyA = 0;    
     
 static int16_t g_scroll_sprite_x = 0;   
 static int16_t g_scroll_sprite_y = 10;   
+static bool g_button_a_is_pushed = false;
+static int16_t g_button_a_is_pushed_x = -40;   
 
 void init_scrollscreen_nbg0(void)
 {
@@ -368,7 +380,7 @@ void set_VRAM_access_priorities()
     vdp2_vram_control_set(vram_ctl);
 }
 
-void init(void)
+void init_vdp2_scrollescreens(void)
 {
     /* DMA Indirect list, aligned on 64 bytes due to more than 24bytes size (6*4*3=72) */
     uint32_t dma_tbl[] __attribute__((aligned(128))) = { 
@@ -380,10 +392,11 @@ void init(void)
             (uint32_t)sizeof(NGB2_CP), (uint32_t)_nbg2_color_palette, (uint32_t)NGB2_CP, 
             (uint32_t)sizeof(NGB3_CD), (uint32_t)_nbg3_cell_data, (uint32_t)NGB3_CD, 
             (uint32_t)sizeof(NGB3_CP), (uint32_t)_nbg3_color_palette, (uint32_t)NGB3_CP,
-            (uint32_t)sizeof(sprite_char_pat), _sprite_cell_data, (uint32_t)sprite_char_pat,
-            (uint32_t)sizeof(sprite_boss_char_pat), _sprite_boss_cell_data, (uint32_t)sprite_boss_char_pat,
+            (uint32_t)sizeof(spaceship_char_pat), _spaceship_char_pat_data, (uint32_t)spaceship_char_pat,
+            (uint32_t)sizeof(boss_ecd_char_pat), _boss_char_pat_data, (uint32_t)boss_ecd_char_pat,
+            (uint32_t)sizeof(plasma_char_pat), _plasma_char_pat_data, (uint32_t)plasma_char_pat,
     };    
-    scu_dma_listcpy(dma_tbl, 10*3);
+    scu_dma_listcpy(dma_tbl, 11*3);
     while(scu_dma_get_status(SCU_DMA_ALL_CH) == SCU_DMA_STATUS_WAIT);
     
     set_VRAM_access_priorities();
@@ -404,12 +417,14 @@ void read_digital_pad(void)
 		joyDown = g_digital.pressed.button.down;
 		joyRight = g_digital.pressed.button.right;                            
 		joyLeft = g_digital.pressed.button.left;
+        joyA = g_digital.pressed.button.a;
         
 		if (joyUp)
 		{
             if(g_scroll_sprite_y>0)
             {
                 g_scroll_sprite_y -= 2;
+                
             }                
 		}
 		else if (joyDown)
@@ -433,6 +448,11 @@ void read_digital_pad(void)
                 g_scroll_sprite_x -= 2;  			
             }
 		}
+		else if (joyA)
+		{
+            g_button_a_is_pushed = true;
+            g_button_a_is_pushed_x = g_scroll_sprite_x + 48;
+		}        
 		
 		// exit
 		if(g_digital.pressed.button.start) abort();		
@@ -441,12 +461,109 @@ void read_digital_pad(void)
         
 }
 
+/*
+ * bool update_plasma(void)
+ * set plasma position and decide to show or not
+ */ 
+bool update_plasma(void)
+{
+    if(g_button_a_is_pushed)
+    {
+        if(normal_sprite_plasma_pointer.cs_position.x  < 0)
+        {
+            normal_sprite_plasma_pointer.cs_position.x = g_button_a_is_pushed_x;
+            normal_sprite_plasma_pointer.cs_position.y = g_scroll_sprite_y;
+        }
+        else normal_sprite_plasma_pointer.cs_position.x += 6;
+
+        if(normal_sprite_plasma_pointer.cs_position.x >= 320)
+        {
+            g_button_a_is_pushed = false;
+            normal_sprite_plasma_pointer.cs_position.x  = -40;
+            return false;
+        }
+        else
+            return true;
+    } 
+    else
+        return false;
+}       
+
+void init_vdp1_sprites(void)
+{
+    vdp1_cmdt_list_init();
+    vdp1_cmdt_list_clear_all();
+    
+    // set coord systems
+    system_clip.scc_coord.x = 320 - 1;
+    system_clip.scc_coord.y = 224 - 1;
+    
+    user_clip.ucc_coords[0].x = 0;
+    user_clip.ucc_coords[0].y = 0;
+    user_clip.ucc_coords[1].x = 320 - 1;
+    user_clip.ucc_coords[1].y = 224 - 1;
+
+    local.lc_coord.x = 0;
+    local.lc_coord.y = 0;
+        
+    g_scroll_sprite_x = 20;
+    g_scroll_sprite_y = 100; 
+    
+    memset(&normal_sprite_spaceship_pointer, 0x00, sizeof(struct vdp1_cmdt_sprite));
+    normal_sprite_spaceship_pointer.cs_type = CMDT_TYPE_NORMAL_SPRITE;
+    normal_sprite_spaceship_pointer.cs_mode.cc_mode = 0x0; // no gouraud or any cc
+    normal_sprite_spaceship_pointer.cs_mode.color_mode = 5; 	// mode 5 RGB
+    //normal_sprite_spaceship_pointer.cs_mode.color_mode = 1; // palette lookup
+    //normal_sprite_spaceship_pointer.cs_mode.cs_clut = 5;  // palette address
+    
+    normal_sprite_spaceship_pointer.cs_mode.mesh = 0;
+    normal_sprite_spaceship_pointer.cs_mode.user_clipping = 1;
+    normal_sprite_spaceship_pointer.cs_mode.end_code = 0;
+    normal_sprite_spaceship_pointer.cs_width = 48; // multiple of 8
+    normal_sprite_spaceship_pointer.cs_height = 24; // multiple of 1
+    normal_sprite_spaceship_pointer.cs_position.x = g_scroll_sprite_x;
+    normal_sprite_spaceship_pointer.cs_position.y = g_scroll_sprite_y;
+    normal_sprite_spaceship_pointer.cs_mode.transparent_pixel = 0;
+    normal_sprite_spaceship_pointer.cs_char = _spaceship_char_pat_data;    
+    
+    memset(&normal_sprite_boss_pointer, 0x00, sizeof(struct vdp1_cmdt_sprite));
+    normal_sprite_boss_pointer.cs_type = CMDT_TYPE_NORMAL_SPRITE;
+    normal_sprite_boss_pointer.cs_mode.cc_mode = 0x0; // no gouraud or any cc
+    normal_sprite_boss_pointer.cs_mode.color_mode = 5; 	// mode 5 RGB
+    normal_sprite_boss_pointer.cs_mode.mesh = 0;
+    normal_sprite_boss_pointer.cs_mode.user_clipping = 1;
+    normal_sprite_boss_pointer.cs_mode.end_code = 1;
+    normal_sprite_boss_pointer.cs_mode.transparent_pixel = 1;    
+    normal_sprite_boss_pointer.cs_width = 160; // multiple of 8
+    normal_sprite_boss_pointer.cs_height = 82; // multiple of 1
+    normal_sprite_boss_pointer.cs_position.x = 320;
+    normal_sprite_boss_pointer.cs_position.y = 80;
+    normal_sprite_boss_pointer.cs_char = _boss_char_pat_data;        
+  
+    memset(&normal_sprite_plasma_pointer, 0x00, sizeof(struct vdp1_cmdt_sprite));
+    normal_sprite_plasma_pointer.cs_type = CMDT_TYPE_NORMAL_SPRITE;
+    normal_sprite_plasma_pointer.cs_mode.cc_mode = 0x0; // no gouraud or any cc
+    normal_sprite_plasma_pointer.cs_mode.color_mode = 5; 	// mode 5 RGB
+    normal_sprite_plasma_pointer.cs_mode.mesh = 0;
+    normal_sprite_plasma_pointer.cs_mode.user_clipping = 1;
+    normal_sprite_plasma_pointer.cs_mode.end_code = 1;
+    normal_sprite_plasma_pointer.cs_mode.transparent_pixel = 1;    
+    normal_sprite_plasma_pointer.cs_width = 80; // multiple of 8
+    normal_sprite_plasma_pointer.cs_height = 16; // multiple of 1
+    normal_sprite_plasma_pointer.cs_position.x = -80;
+    normal_sprite_plasma_pointer.cs_position.y = 0;
+    normal_sprite_plasma_pointer.cs_char = _plasma_char_pat_data;     
+
+    // Set Sprite priorities on VDP2
+    MEMORY_WRITE(16, VDP2(SPCTL), (1 << 5));
+    MEMORY_WRITE(16, VDP2(PRISA), 0x6);    
+}
+
 int main(void)
 {
     uint32_t padButton = 0;
-    uint32_t g_scroll_back4 = 0, g_scroll_back3 = 0, g_scroll_back2 = 0, g_scroll_back1 = 0;
-    uint32_t g_scroll_backy = 0;
-    uint16_t index = 0;
+    uint32_t g_scroll_back4_x = 0, g_scroll_back3_x = 0, g_scroll_back2_x = 0, g_scroll_back1_x = 0;
+    int16_t g_scroll_back1_y = 33, g_scroll_back2_y = 33, g_scroll_back3_y = 33, g_scroll_back4_y = 33;
 
     irq_mux_t *vblank_in;
     irq_mux_t *vblank_out;
@@ -454,6 +571,11 @@ int main(void)
     static uint16_t back_screen_color = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
 
     vdp2_init();
+    
+    //uint16_t tvmd = MEMORY_READ(16, VDP2(TVMD));    /* set 320x240 res, back color mode */
+    //tvmd |= ((1 << 8) | (1 << 4));                  // set BDCLMD,  VRES0 to 1
+    MEMORY_WRITE(16, VDP2(TVMD), 0x8110);        
+    
     vdp1_init();
     smpc_init();
     smpc_peripheral_init();
@@ -466,96 +588,38 @@ int main(void)
     irq_mux_handle_add(vblank_out, vblank_out_handler, NULL);
     cpu_intc_enable();
     
-	init();
+	init_vdp2_scrollescreens();
     
-    vdp1_cmdt_list_init();
-    vdp1_cmdt_list_clear_all();
-    
-    struct vdp1_cmdt_system_clip_coord system_clip;
-    system_clip.scc_coord.x = 320 - 1;
-    system_clip.scc_coord.y = 224 - 1;
-    
-    struct vdp1_cmdt_user_clip_coord user_clip;
-    user_clip.ucc_coords[0].x = 0;
-    user_clip.ucc_coords[0].y = 0;
-    user_clip.ucc_coords[1].x = 320 - 1;
-    user_clip.ucc_coords[1].y = 224 - 1;
-
-    struct vdp1_cmdt_local_coord local;
-    local.lc_coord.x = 0;
-    local.lc_coord.y = 0;
-        
-    g_scroll_sprite_x = 60;
-    g_scroll_sprite_y = 100; 
-    
-    struct vdp1_cmdt_sprite normal_sprite_pointer;  
-    memset(&normal_sprite_pointer, 0x00, sizeof(struct vdp1_cmdt_sprite));
-    
-
-    normal_sprite_pointer.cs_type = CMDT_TYPE_NORMAL_SPRITE;
-    normal_sprite_pointer.cs_mode.cc_mode = 0x0; // no gouraud or any cc
-    normal_sprite_pointer.cs_mode.color_mode = 5; 	// mode 5 RGB
-    //normal_sprite_pointer.cs_mode.color_mode = 1; // palette lookup
-    //normal_sprite_pointer.cs_mode.cs_clut = 5;  // palette address
-    
-    normal_sprite_pointer.cs_mode.mesh = 0;
-    normal_sprite_pointer.cs_mode.user_clipping = 1;
-    normal_sprite_pointer.cs_mode.end_code = 1;
-    normal_sprite_pointer.cs_width = 48; // multiple of 8
-    normal_sprite_pointer.cs_height = 24; // multiple of 1
-    normal_sprite_pointer.cs_position.x = g_scroll_sprite_x;
-    normal_sprite_pointer.cs_position.y = g_scroll_sprite_y;
-    normal_sprite_pointer.cs_mode.transparent_pixel = 0;
-
-    normal_sprite_pointer.cs_char = _sprite_cell_data;    
-    
-    struct vdp1_cmdt_sprite normal_sprite2_pointer;  
-    memset(&normal_sprite2_pointer, 0x00, sizeof(struct vdp1_cmdt_sprite));
-    
-    normal_sprite2_pointer.cs_type = CMDT_TYPE_NORMAL_SPRITE;
-    normal_sprite2_pointer.cs_mode.cc_mode = 0x0; // no gouraud or any cc
-    normal_sprite2_pointer.cs_mode.color_mode = 5; 	// mode 5 RGB
-    normal_sprite2_pointer.cs_mode.mesh = 0;
-    normal_sprite2_pointer.cs_mode.user_clipping = 1;
-    normal_sprite2_pointer.cs_mode.end_code = 1;
-    normal_sprite2_pointer.cs_width = 160; // multiple of 8
-    normal_sprite2_pointer.cs_height = 82; // multiple of 1
-    normal_sprite2_pointer.cs_position.x = 160;
-    normal_sprite2_pointer.cs_position.y = 80;
-    normal_sprite2_pointer.cs_mode.transparent_pixel = 0;
-
-    normal_sprite2_pointer.cs_char = _sprite_boss_cell_data;        
-   
-
-    // Set Sprite priorities on VDP2
-    MEMORY_WRITE(16, VDP2(SPCTL), (1 << 5));
-    MEMORY_WRITE(16, VDP2(PRISA), 0x6);
+    init_vdp1_sprites();
    
 	vdp2_scrn_back_screen_color_set(VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color);  
-
+    
 	/* Main loop */
 	while (!padButton) 
 	{
         
 	  	vdp2_tvmd_vblank_in_wait();
         
-        vdp2_scrn_scv_x_set(SCRN_NBG0, g_scroll_back4, 0);
-        vdp2_scrn_scv_x_set(SCRN_NBG1, g_scroll_back3, 0);
-        vdp2_scrn_scv_x_set(SCRN_NBG2, g_scroll_back2, 0);
-        vdp2_scrn_scv_x_set(SCRN_NBG3, g_scroll_back1, 0);
+        vdp2_scrn_scv_x_set(SCRN_NBG0, g_scroll_back4_x, 0);
+        vdp2_scrn_scv_x_set(SCRN_NBG1, g_scroll_back3_x, 0);
+        vdp2_scrn_scv_x_set(SCRN_NBG2, g_scroll_back2_x, 0);
+        vdp2_scrn_scv_x_set(SCRN_NBG3, g_scroll_back1_x, 0);
         
-        g_scroll_backy = 34;
-        //g_scroll_backy = 35 + (lut[index % 512])/8;
-        vdp2_scrn_scv_y_set(SCRN_NBG0, g_scroll_backy, 0);
-        vdp2_scrn_scv_y_set(SCRN_NBG1, g_scroll_backy, 0);
-        vdp2_scrn_scv_y_set(SCRN_NBG2, g_scroll_backy, 0);
-        vdp2_scrn_scv_y_set(SCRN_NBG3, g_scroll_backy, 0);        
+
+        vdp2_scrn_scv_y_set(SCRN_NBG0, g_scroll_back4_y, 0);
+        vdp2_scrn_scv_y_set(SCRN_NBG1, g_scroll_back3_y, 0);
+        vdp2_scrn_scv_y_set(SCRN_NBG2, g_scroll_back2_y, 0);
+        vdp2_scrn_scv_y_set(SCRN_NBG3, g_scroll_back1_y, 0);        
         
-        g_scroll_back4 = (g_scroll_back4 + 6) % 1024;
-        g_scroll_back3 = (g_scroll_back3 + 4) % 1024;
-        g_scroll_back2 = (g_scroll_back2 + 2) % 1024;
-        g_scroll_back1 = (g_scroll_back1 + 1) % 1024;
-        index++;
+        g_scroll_back4_x = (g_scroll_back4_x + 6) % 1024;
+        g_scroll_back3_x = (g_scroll_back3_x + 4) % 1024;
+        g_scroll_back2_x = (g_scroll_back2_x + 2) % 1024;
+        g_scroll_back1_x = (g_scroll_back1_x + 1) % 1024;
+        
+        g_scroll_back1_y = 33 + ( g_scroll_sprite_y - (240/2)) / 6;
+        g_scroll_back2_y = 33 + ( g_scroll_sprite_y - (240/2)) / 8;
+        g_scroll_back3_y = 33 + ( g_scroll_sprite_y - (240/2)) / 8;
+        g_scroll_back4_y = 33 + ( g_scroll_sprite_y - (240/2)) / 9;
         
         // show sprite
         vdp1_cmdt_list_begin(0); 
@@ -564,11 +628,19 @@ int main(void)
             vdp1_cmdt_user_clip_coord_set(&user_clip);
             vdp1_cmdt_local_coord_set(&local);
 
-            normal_sprite_pointer.cs_position.x = g_scroll_sprite_x;
-            normal_sprite_pointer.cs_position.y = g_scroll_sprite_y;
+            normal_sprite_spaceship_pointer.cs_position.x = g_scroll_sprite_x;
+            normal_sprite_spaceship_pointer.cs_position.y = g_scroll_sprite_y;
             
-            vdp1_cmdt_sprite_draw(&normal_sprite_pointer);
-            vdp1_cmdt_sprite_draw(&normal_sprite2_pointer);
+            if(normal_sprite_boss_pointer.cs_position.x > 160) normal_sprite_boss_pointer.cs_position.x -= 1;
+            //if(normal_sprite_boss_pointer.cs_position.y == 80) normal_sprite_boss_pointer.cs_position.y = 82;
+            //else normal_sprite_boss_pointer.cs_position.y = 80;
+     
+
+            
+            vdp1_cmdt_sprite_draw(&normal_sprite_spaceship_pointer);
+            if(update_plasma())
+                vdp1_cmdt_sprite_draw(&normal_sprite_plasma_pointer);            
+            vdp1_cmdt_sprite_draw(&normal_sprite_boss_pointer);
 
             vdp1_cmdt_end();
         } 
