@@ -111,35 +111,19 @@ static uint16_t *_nbg3_planes[4] = {
 
 /* VRAM A0 after planes */
 static uint32_t *_nbg0_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(0, 0x4000);
-static uint16_t _nbg0_cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)VRAM_ADDR_4MBIT(0, 0x4000));
-
-/* CRAM */
 static uint32_t *_nbg0_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(0, 0, 0);
-static uint16_t _nbg0_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE_1_OFFSET(0, 0, 0));
 
 /* VRAM A1 after planes */
 static uint32_t *_nbg1_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(1, 0x4000);
-static uint16_t _nbg1_cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)VRAM_ADDR_4MBIT(1, 0x4000));
-
-/* CRAM */
 static uint32_t *_nbg1_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(1, 0, 0);
-static uint16_t _nbg1_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE_1_OFFSET(1, 0, 0));
 
 /* VRAM B0 after planes */
 static uint32_t *_nbg2_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(2, 0x4000);
-static uint16_t _nbg2_cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)VRAM_ADDR_4MBIT(2, 0x4000));
-
-/* CRAM */
 static uint32_t *_nbg2_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(2, 0, 0);
-static uint16_t _nbg2_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE_1_OFFSET(2, 0, 0));
 
 /* VRAM B1 after planes */
 static uint32_t *_nbg3_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(3, 0x4000);
-static uint16_t _nbg3_cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)VRAM_ADDR_4MBIT(3, 0x4000));
-
-/* CRAM */
 static uint32_t *_nbg3_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(3, 0, 0);
-static uint16_t _nbg3_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE_1_OFFSET(3, 0, 0));
 
 
 // sprites 
@@ -162,177 +146,56 @@ static int16_t g_scroll_sprite_y = 10;
 static bool g_button_a_is_pushed = false;
 static int16_t g_button_a_is_pushed_x = -40;   
 
-void init_scrollscreen_nbg0(void)
-{
-    /* We want to be in VBLANK */
-    vdp2_tvmd_display_clear();
 
-    /* set NBG0 in cell mode, 16 col, 1x1 */
-    struct scrn_cell_format nbg0_format;
-
-    /* We want to be in VBLANK-IN (retrace) */
-    vdp2_tvmd_display_clear();
-
-	nbg0_format.scf_scroll_screen = SCRN_NBG0;
-	nbg0_format.scf_cc_count = SCRN_CCC_PALETTE_16;
-	nbg0_format.scf_character_size= 1 * 1;
-	nbg0_format.scf_pnd_size = 1; /* 1 word */
-	nbg0_format.scf_auxiliary_mode = 1;
-	nbg0_format.scf_cp_table = (uint32_t)_nbg0_cell_data;
-	nbg0_format.scf_color_palette = (uint32_t)_nbg0_color_palette;
-	nbg0_format.scf_plane_size = 2 * 1;
-	nbg0_format.scf_map.plane_a = (uint32_t)_nbg0_planes[0];
-	nbg0_format.scf_map.plane_b = (uint32_t)_nbg0_planes[1];
-	nbg0_format.scf_map.plane_c = (uint32_t)_nbg0_planes[2];
-	nbg0_format.scf_map.plane_d = (uint32_t)_nbg0_planes[3];
-
-	vdp2_scrn_cell_format_set(&nbg0_format);
-    vdp2_priority_spn_set(SCRN_NBG0, 7);
-
-    /* Build the pattern data */   
-    uint32_t i;
-    uint16_t *nbg0_page0 = _nbg0_planes[0];
-    uint16_t *nbg0_page1 = _nbg0_planes[1];
-
-	for (i = 0; i < 4096; i++) 
-    {
-        uint16_t cell_data_number0 = _nbg0_cell_data_number + NGB0_PNT_PLANE0[i];
-        uint16_t cell_data_number1 = _nbg0_cell_data_number + NGB0_PNT_PLANE1[i];
-        nbg0_page0[i] = cell_data_number0 | _nbg0_palette_number;
-        nbg0_page1[i] = cell_data_number1 | _nbg0_palette_number;
-	}
-
-    vdp2_scrn_display_set(SCRN_NBG0, /* transparent = */ true);
-}
-
-
-void init_scrollscreen_nbg1(void)
-{
-    /* We want to be in VBLANK */
-    vdp2_tvmd_display_clear();
-
-    /* set NBG1 in cell mode, 16 col, 1x1 */
-    struct scrn_cell_format nbg1_format;
-
-    /* We want to be in VBLANK-IN (retrace) */
-    vdp2_tvmd_display_clear();
-
-	nbg1_format.scf_scroll_screen = SCRN_NBG1;
-	nbg1_format.scf_cc_count = SCRN_CCC_PALETTE_16;
-	nbg1_format.scf_character_size= 1 * 1;
-	nbg1_format.scf_pnd_size = 1; /* 1 word */
-	nbg1_format.scf_auxiliary_mode = 1;
-	nbg1_format.scf_cp_table = (uint32_t)_nbg1_cell_data;
-	nbg1_format.scf_color_palette = (uint32_t)_nbg1_color_palette;
-	nbg1_format.scf_plane_size = 2 * 1;
-	nbg1_format.scf_map.plane_a = (uint32_t)_nbg1_planes[0];
-	nbg1_format.scf_map.plane_b = (uint32_t)_nbg1_planes[1];
-	nbg1_format.scf_map.plane_c = (uint32_t)_nbg1_planes[2];
-	nbg1_format.scf_map.plane_d = (uint32_t)_nbg1_planes[3];
-
-	vdp2_scrn_cell_format_set(&nbg1_format);
-    vdp2_priority_spn_set(SCRN_NBG1, 3);
-
-    /* Build the pattern data */   
-    uint32_t i;
-    uint16_t *nbg1_page0 = _nbg1_planes[0];
-    uint16_t *nbg1_page1 = _nbg1_planes[1];
-
-	for (i = 0; i < 4096; i++) 
-    {
-        uint16_t cell_data_number0 = _nbg1_cell_data_number + NGB1_PNT_PLANE0[i];
-        uint16_t cell_data_number1 = _nbg1_cell_data_number + NGB1_PNT_PLANE1[i];
-        nbg1_page0[i] = cell_data_number0 | _nbg1_palette_number;
-        nbg1_page1[i] = cell_data_number1 | _nbg1_palette_number;
-	}
-
-    vdp2_scrn_display_set(SCRN_NBG1, /* transparent = */ true);
-}
-
-void init_scrollscreen_nbg2(void)
+/*
+ * void init_scrollscreen_nbg(int screen, uint16_t *planes[], uint32_t *cell_data_ptr, uint32_t *palette_ptr, uint16_t page0_data[], uint16_t page1_data[], uint8_t priority, bool transparent) 
+ * 
+ * 
+ */
+void init_scrollscreen_nbg(int screen, uint16_t *planes[], uint32_t *cell_data_ptr, uint32_t *palette_ptr, uint16_t page0_data[], uint16_t page1_data[], uint8_t priority, bool transparent)
 {
     /* We want to be in VBLANK */
     vdp2_tvmd_display_clear();
 
     /* set NBG2 in cell mode, 16 col, 1x1 */
-    struct scrn_cell_format nbg2_format;
+    struct scrn_cell_format nbg_format;
 
     /* We want to be in VBLANK-IN (retrace) */
     vdp2_tvmd_display_clear();
 
-	nbg2_format.scf_scroll_screen = SCRN_NBG2;
-	nbg2_format.scf_cc_count = SCRN_CCC_PALETTE_16;
-	nbg2_format.scf_character_size= 1 * 1;
-	nbg2_format.scf_pnd_size = 1; /* 1 word */
-	nbg2_format.scf_auxiliary_mode = 1;
-	nbg2_format.scf_cp_table = (uint32_t)_nbg2_cell_data;
-	nbg2_format.scf_color_palette = (uint32_t)_nbg2_color_palette;
-	nbg2_format.scf_plane_size = 2 * 1;
-	nbg2_format.scf_map.plane_a = (uint32_t)_nbg2_planes[0];
-	nbg2_format.scf_map.plane_b = (uint32_t)_nbg2_planes[1];
-	nbg2_format.scf_map.plane_c = (uint32_t)_nbg2_planes[2];
-	nbg2_format.scf_map.plane_d = (uint32_t)_nbg2_planes[3];
+	nbg_format.scf_scroll_screen = screen;
+	nbg_format.scf_cc_count = SCRN_CCC_PALETTE_16;
+	nbg_format.scf_character_size= 1 * 1;
+	nbg_format.scf_pnd_size = 1; /* 1 word */
+	nbg_format.scf_auxiliary_mode = 1;
+	nbg_format.scf_cp_table = (uint32_t)cell_data_ptr;
+	nbg_format.scf_color_palette = (uint32_t)palette_ptr;
+	nbg_format.scf_plane_size = 2 * 1;
+	nbg_format.scf_map.plane_a = (uint32_t)planes[0];
+	nbg_format.scf_map.plane_b = (uint32_t)planes[1];
+	nbg_format.scf_map.plane_c = (uint32_t)planes[2];
+	nbg_format.scf_map.plane_d = (uint32_t)planes[3];
 
-	vdp2_scrn_cell_format_set(&nbg2_format);
-    vdp2_priority_spn_set(SCRN_NBG2, 2);
-
-    /* Build the pattern data */   
-    uint32_t i;
-    uint16_t *nbg2_page0 = _nbg2_planes[0];
-    uint16_t *nbg2_page1 = _nbg2_planes[1];
-
-	for (i = 0; i < 4096; i++) 
-    {
-        uint16_t cell_data_number0 = _nbg2_cell_data_number + NGB2_PNT_PLANE0[i];
-        uint16_t cell_data_number1 = _nbg2_cell_data_number + NGB2_PNT_PLANE1[i];
-        nbg2_page0[i] = cell_data_number0 | _nbg2_palette_number;
-        nbg2_page1[i] = cell_data_number1 | _nbg2_palette_number;
-	}
-
-    vdp2_scrn_display_set(SCRN_NBG2, /* transparent = */ true);
-}
-
-void init_scrollscreen_nbg3(void)
-{
-    /* We want to be in VBLANK */
-    vdp2_tvmd_display_clear();
-
-    /* set NBG2 in cell mode, 16 col, 1x1 */
-    struct scrn_cell_format nbg3_format;
-
-    /* We want to be in VBLANK-IN (retrace) */
-    vdp2_tvmd_display_clear();
-
-	nbg3_format.scf_scroll_screen = SCRN_NBG3;
-	nbg3_format.scf_cc_count = SCRN_CCC_PALETTE_16;
-	nbg3_format.scf_character_size= 1 * 1;
-	nbg3_format.scf_pnd_size = 1; /* 1 word */
-	nbg3_format.scf_auxiliary_mode = 1;
-	nbg3_format.scf_cp_table = (uint32_t)_nbg3_cell_data;
-	nbg3_format.scf_color_palette = (uint32_t)_nbg3_color_palette;
-	nbg3_format.scf_plane_size = 2 * 1;
-	nbg3_format.scf_map.plane_a = (uint32_t)_nbg3_planes[0];
-	nbg3_format.scf_map.plane_b = (uint32_t)_nbg3_planes[1];
-	nbg3_format.scf_map.plane_c = (uint32_t)_nbg3_planes[2];
-	nbg3_format.scf_map.plane_d = (uint32_t)_nbg3_planes[3];
-
-	vdp2_scrn_cell_format_set(&nbg3_format);
-    vdp2_priority_spn_set(SCRN_NBG3, 1);
+	vdp2_scrn_cell_format_set(&nbg_format);
+    vdp2_priority_spn_set(screen, priority);
 
     /* Build the pattern data */   
     uint32_t i;
-    uint16_t *nbg3_page0 = _nbg3_planes[0];
-    uint16_t *nbg3_page1 = _nbg3_planes[1];
+    uint16_t *nbg_page0 = planes[0];
+    uint16_t *nbg_page1 = planes[1];
+  
+    uint16_t palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)_nbg3_color_palette);
+    uint16_t cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cell_data_ptr);
 
 	for (i = 0; i < 4096; i++) 
     {
-        uint16_t cell_data_number0 = _nbg3_cell_data_number + NGB3_PNT_PLANE0[i];
-        uint16_t cell_data_number1 = _nbg3_cell_data_number + NGB3_PNT_PLANE1[i];
-        nbg3_page0[i] = cell_data_number0 | _nbg3_palette_number;
-        nbg3_page1[i] = cell_data_number1 | _nbg3_palette_number;
+        uint16_t cell_data_number0 = cell_data_number + page0_data[i];
+        uint16_t cell_data_number1 = cell_data_number + page1_data[i];
+        nbg_page0[i] = cell_data_number0 | palette_number;
+        nbg_page1[i] = cell_data_number1 | palette_number;
 	}
 
-    vdp2_scrn_display_set(SCRN_NBG3, /* transparent = */ false);
+    vdp2_scrn_display_set(screen, transparent);
 }
 
 void set_VRAM_access_priorities()
@@ -401,10 +264,10 @@ void init_vdp2_scrollescreens(void)
     
     set_VRAM_access_priorities();
     
-    init_scrollscreen_nbg0();
-    init_scrollscreen_nbg1();
-    init_scrollscreen_nbg2();
-    init_scrollscreen_nbg3();
+    init_scrollscreen_nbg(SCRN_NBG0, _nbg0_planes, _nbg0_cell_data, _nbg0_color_palette, NGB0_PNT_PLANE0, NGB0_PNT_PLANE1, 7, true);
+    init_scrollscreen_nbg(SCRN_NBG1, _nbg1_planes, _nbg1_cell_data, _nbg1_color_palette, NGB1_PNT_PLANE0, NGB1_PNT_PLANE1, 3, true);
+    init_scrollscreen_nbg(SCRN_NBG2, _nbg2_planes, _nbg2_cell_data, _nbg2_color_palette, NGB2_PNT_PLANE0, NGB2_PNT_PLANE1, 2, true);
+    init_scrollscreen_nbg(SCRN_NBG3, _nbg3_planes, _nbg3_cell_data, _nbg3_color_palette, NGB3_PNT_PLANE0, NGB3_PNT_PLANE1, 1, false);
      
     vdp2_tvmd_display_set(); 
 }
@@ -421,32 +284,20 @@ void read_digital_pad(void)
         
 		if (joyUp)
 		{
-            if(g_scroll_sprite_y>0)
-            {
-                g_scroll_sprite_y -= 2;
-                
-            }                
+            if(g_scroll_sprite_y>0) g_scroll_sprite_y -= 2;             
 		}
 		else if (joyDown)
 		{
-            if(g_scroll_sprite_y<224)
-            {
-                g_scroll_sprite_y += 2;
-            }        
+            if(g_scroll_sprite_y<224) g_scroll_sprite_y += 2;
 		}
         if (joyRight)
 		{
-            if(g_scroll_sprite_x<320)
-            {
-                g_scroll_sprite_x += 2;
-            }
+            if(g_scroll_sprite_x<320) g_scroll_sprite_x += 2;
+
 		}
 		else if (joyLeft)
 		{
-            if(g_scroll_sprite_x>0)
-            {
-                g_scroll_sprite_x -= 2;  			
-            }
+            if(g_scroll_sprite_x>0) g_scroll_sprite_x -= 2;  			
 		}
 		else if (joyA)
 		{
@@ -456,9 +307,7 @@ void read_digital_pad(void)
 		
 		// exit
 		if(g_digital.pressed.button.start) abort();		
-
 	}  
-        
 }
 
 /*
@@ -482,12 +331,19 @@ bool update_plasma(void)
             normal_sprite_plasma_pointer.cs_position.x  = -40;
             return false;
         }
-        else
-            return true;
+        return true;
     } 
-    else
-        return false;
+    return false;
 }       
+
+bool update_boss(void)
+{
+    if(normal_sprite_boss_pointer.cs_position.x > 160) normal_sprite_boss_pointer.cs_position.x -= 1;
+    //if(normal_sprite_boss_pointer.cs_position.y == 80) normal_sprite_boss_pointer.cs_position.y = 82;
+    //else normal_sprite_boss_pointer.cs_position.y = 80;    
+    
+    return true;
+}
 
 void init_vdp1_sprites(void)
 {
@@ -512,10 +368,7 @@ void init_vdp1_sprites(void)
     memset(&normal_sprite_spaceship_pointer, 0x00, sizeof(struct vdp1_cmdt_sprite));
     normal_sprite_spaceship_pointer.cs_type = CMDT_TYPE_NORMAL_SPRITE;
     normal_sprite_spaceship_pointer.cs_mode.cc_mode = 0x0; // no gouraud or any cc
-    normal_sprite_spaceship_pointer.cs_mode.color_mode = 5; 	// mode 5 RGB
-    //normal_sprite_spaceship_pointer.cs_mode.color_mode = 1; // palette lookup
-    //normal_sprite_spaceship_pointer.cs_mode.cs_clut = 5;  // palette address
-    
+    normal_sprite_spaceship_pointer.cs_mode.color_mode = 5; 	// mode 5 RGB    
     normal_sprite_spaceship_pointer.cs_mode.mesh = 0;
     normal_sprite_spaceship_pointer.cs_mode.user_clipping = 1;
     normal_sprite_spaceship_pointer.cs_mode.end_code = 0;
@@ -571,9 +424,7 @@ int main(void)
     static uint16_t back_screen_color = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
 
     vdp2_init();
-    
-    //uint16_t tvmd = MEMORY_READ(16, VDP2(TVMD));    /* set 320x240 res, back color mode */
-    //tvmd |= ((1 << 8) | (1 << 4));                  // set BDCLMD,  VRES0 to 1
+    /* set 320x240 res, back color mode */    
     MEMORY_WRITE(16, VDP2(TVMD), 0x8110);        
     
     vdp1_init();
@@ -600,12 +451,12 @@ int main(void)
         
 	  	vdp2_tvmd_vblank_in_wait();
         
+        // update positions
         vdp2_scrn_scv_x_set(SCRN_NBG0, g_scroll_back4_x, 0);
         vdp2_scrn_scv_x_set(SCRN_NBG1, g_scroll_back3_x, 0);
         vdp2_scrn_scv_x_set(SCRN_NBG2, g_scroll_back2_x, 0);
         vdp2_scrn_scv_x_set(SCRN_NBG3, g_scroll_back1_x, 0);
         
-
         vdp2_scrn_scv_y_set(SCRN_NBG0, g_scroll_back4_y, 0);
         vdp2_scrn_scv_y_set(SCRN_NBG1, g_scroll_back3_y, 0);
         vdp2_scrn_scv_y_set(SCRN_NBG2, g_scroll_back2_y, 0);
@@ -616,6 +467,7 @@ int main(void)
         g_scroll_back2_x = (g_scroll_back2_x + 2) % 1024;
         g_scroll_back1_x = (g_scroll_back1_x + 1) % 1024;
         
+        // move parallax y against spaceship y
         g_scroll_back1_y = 33 + ( g_scroll_sprite_y - (240/2)) / 6;
         g_scroll_back2_y = 33 + ( g_scroll_sprite_y - (240/2)) / 8;
         g_scroll_back3_y = 33 + ( g_scroll_sprite_y - (240/2)) / 8;
@@ -630,17 +482,10 @@ int main(void)
 
             normal_sprite_spaceship_pointer.cs_position.x = g_scroll_sprite_x;
             normal_sprite_spaceship_pointer.cs_position.y = g_scroll_sprite_y;
-            
-            if(normal_sprite_boss_pointer.cs_position.x > 160) normal_sprite_boss_pointer.cs_position.x -= 1;
-            //if(normal_sprite_boss_pointer.cs_position.y == 80) normal_sprite_boss_pointer.cs_position.y = 82;
-            //else normal_sprite_boss_pointer.cs_position.y = 80;
-     
-
-            
+                        
             vdp1_cmdt_sprite_draw(&normal_sprite_spaceship_pointer);
-            if(update_plasma())
-                vdp1_cmdt_sprite_draw(&normal_sprite_plasma_pointer);            
-            vdp1_cmdt_sprite_draw(&normal_sprite_boss_pointer);
+            if(update_plasma())     vdp1_cmdt_sprite_draw(&normal_sprite_plasma_pointer);            
+            if(update_boss())       vdp1_cmdt_sprite_draw(&normal_sprite_boss_pointer);
 
             vdp1_cmdt_end();
         } 
