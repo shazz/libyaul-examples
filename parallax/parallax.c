@@ -15,24 +15,29 @@
 /*
  * VDP2 VRAM Organization
  * Bank A0
- * - NBG0 plane data, from 0x0 to 0x01000 (4096 bytes, 1 word per cell, 512x256px)
- * - NBG0 cell pattern data, from 0x00000 to 0x0DD80 (56704 bytes, 886 8x8 cells in 8bits color)
- * => total : 56704 bytes instead of 131072 bytes in bitmap mode which fits in 128KB bank
+ * - NBG0 2 planes data, from 0x0 to 0x04000 (2x 8192 bytes, 1 word per cell, 512x512px)
+ * - NBG0 cell pattern data, from 0x04000 (61 312 bytes, 1916 8x8 cells in 4bits color)
  * 
  * Bank A1
- * - Nothing
+ * - NBG1 2 planes data, from 0x0 to 0x04000 (2x 8192 bytes, 1 word per cell, 512x512px)
+ * - NBG1 cell pattern data, from 0x04000  (20 800 bytes, 650 8x8 cells in 4bits color)
  *  
  * Bank B0
- * - Nothing
+ * - NBG2 2 planes data, from 0x0 to 0x04000 (2x 8192 bytes, 1 word per cell, 512x512px)
+ * - NBG2 cell pattern data, from 0x04000 (17 440 bytes, 545 8x8 cells in 4bits color)
  * 
  * Bank B1
- * - Nothing
+ * - NBG3 2 planes data, from 0x0 to 0x04000 (2x 8192 bytes, 1 word per cell, 512x512px)
+ * - NBG3 cell pattern data, from 0x04000 (19 104 bytes, 597 8x8 cells in 4bits color)
  * 
  * CRAM
- * - NBG0 palette 256 set at palette 0 (0x0)
+ * - NBG0 palette 16 set at palette 0 
+ * - NBG1 palette 16 set at palette bank256 1
+ * - NBG2 palette 16 set at palette bank256 2 
+ * - NBG3 palette 16 set at palette bank256 3
  * 
  * Registers:
- * - TVMD: enable display, border color mode to back screen, 224 lines vertical resolution
+ * - TVMD: enable display, border color mode to back screen, 240 lines vertical resolution
 */ 
 
 #define NGB0_PNT_PLANE0     back4_16_pattern_name_table_page0
@@ -63,68 +68,51 @@ static uint32_t tick = 0;
 static void vblank_in_handler(irq_mux_handle_t *);
 static void vblank_out_handler(irq_mux_handle_t *);
 
-static uint16_t *_nbg0_planes[4] = {
-        /* VRAM A0 */
+// define 4 scroll screens of 2 planes pages
+// each plane needs 4096 u16 (512x512) or 0x2000 bytes (8192)
+static uint16_t *_nbg0_planes[4] = { /* VRAM A0 */
         (uint16_t *)VRAM_ADDR_4MBIT(0, 0x0),
-        /* VRAM A0 */
         (uint16_t *)VRAM_ADDR_4MBIT(0, 0x2000),
-        /* VRAM A0 */
-        (uint16_t *)VRAM_ADDR_4MBIT(0, 0x0),
-        /* VRAM A0 */
-        (uint16_t *)VRAM_ADDR_4MBIT(0, 0x0)
-}; // a plane needs 4096 u16 (512x512) or 0x2000 bytes (8192)
+        (uint16_t *)VRAM_ADDR_4MBIT(0, 0x0),    //not used
+        (uint16_t *)VRAM_ADDR_4MBIT(0, 0x0)     //not used
+}; 
 
-
-static uint16_t *_nbg1_planes[4] = {
-        /* VRAM A1 */
+static uint16_t *_nbg1_planes[4] = { /* VRAM A1 */
         (uint16_t *)VRAM_ADDR_4MBIT(1, 0x0),
-        /* VRAM A1 */
         (uint16_t *)VRAM_ADDR_4MBIT(1, 0x2000),
-        /* VRAM A1 */
-        (uint16_t *)VRAM_ADDR_4MBIT(1, 0x0),
-        /* VRAM A1 */
-        (uint16_t *)VRAM_ADDR_4MBIT(1, 0x0)
-}; // a plane needs 4096 u16 (512x512) or 0x2000 bytes (8192)
+        (uint16_t *)VRAM_ADDR_4MBIT(1, 0x0),    //not used
+        (uint16_t *)VRAM_ADDR_4MBIT(1, 0x0)     //not used
+}; 
 
-static uint16_t *_nbg2_planes[4] = {
-        /* VRAM B0 */
+static uint16_t *_nbg2_planes[4] = { /* VRAM B0 */
         (uint16_t *)VRAM_ADDR_4MBIT(2, 0x0),
-        /* VRAM B0 */
         (uint16_t *)VRAM_ADDR_4MBIT(2, 0x2000),
-        /* VRAM B0 */
-        (uint16_t *)VRAM_ADDR_4MBIT(2, 0x0),
-        /* VRAM B0 */
-        (uint16_t *)VRAM_ADDR_4MBIT(2, 0x0)
-}; // a plane needs 4096 u16 (512x512) or 0x2000 bytes (8192)
+        (uint16_t *)VRAM_ADDR_4MBIT(2, 0x0),    //not used
+        (uint16_t *)VRAM_ADDR_4MBIT(2, 0x0)     //not used
+}; 
 
-static uint16_t *_nbg3_planes[4] = {
-        /* VRAM B1 */
+static uint16_t *_nbg3_planes[4] = { /* VRAM B1 */
         (uint16_t *)VRAM_ADDR_4MBIT(3, 0x0),
-        /* VRAM B1 */
         (uint16_t *)VRAM_ADDR_4MBIT(3, 0x2000),
-        /* VRAM B1 */
-        (uint16_t *)VRAM_ADDR_4MBIT(3, 0x0),
-        /* VRAM B1 */
-        (uint16_t *)VRAM_ADDR_4MBIT(3, 0x0)
-}; // a plane needs 4096 u16 (512x512) or 0x2000 bytes (8192)
+        (uint16_t *)VRAM_ADDR_4MBIT(3, 0x0),     //not used
+        (uint16_t *)VRAM_ADDR_4MBIT(3, 0x0)     //not used
+};
 
-
-/* VRAM A0 after planes */
+/* VRAM A0 after planes, CRAM */
 static uint32_t *_nbg0_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(0, 0x4000);
 static uint32_t *_nbg0_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(0, 0, 0);
 
-/* VRAM A1 after planes */
+/* VRAM A1 after planes, CRAM */
 static uint32_t *_nbg1_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(1, 0x4000);
 static uint32_t *_nbg1_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(1, 0, 0);
 
-/* VRAM B0 after planes */
+/* VRAM B0 after planes, CRAM */
 static uint32_t *_nbg2_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(2, 0x4000);
 static uint32_t *_nbg2_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(2, 0, 0);
 
-/* VRAM B1 after planes */
+/* VRAM B1 after planes, CRAM */
 static uint32_t *_nbg3_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(3, 0x4000);
 static uint32_t *_nbg3_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(3, 0, 0);
-
 
 // sprites 
 static uint32_t _spaceship_char_pat_data = (uint32_t)CHAR(0x220);
@@ -145,7 +133,6 @@ static int16_t g_scroll_sprite_x = 0;
 static int16_t g_scroll_sprite_y = 10;   
 static bool g_button_a_is_pushed = false;
 static int16_t g_button_a_is_pushed_x = -40;   
-
 
 /*
  * void init_scrollscreen_nbg(int screen, uint16_t *planes[], uint32_t *cell_data_ptr, uint32_t *palette_ptr, uint16_t page0_data[], uint16_t page1_data[], uint8_t priority, bool transparent) 
@@ -293,7 +280,6 @@ void read_digital_pad(void)
         if (joyRight)
 		{
             if(g_scroll_sprite_x<320) g_scroll_sprite_x += 2;
-
 		}
 		else if (joyLeft)
 		{
@@ -448,7 +434,6 @@ int main(void)
 	/* Main loop */
 	while (!padButton) 
 	{
-        
 	  	vdp2_tvmd_vblank_in_wait();
         
         // update positions
