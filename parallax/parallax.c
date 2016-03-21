@@ -284,7 +284,8 @@ void read_digital_pad(void)
 		{
             if(g_scroll_sprite_x>0) g_scroll_sprite_x -= 2;  			
 		}
-		else if (joyA)
+		
+        if (joyA)
 		{
             g_button_a_is_pushed = true;
             g_button_a_is_pushed_x = g_scroll_sprite_x + 48;
@@ -323,9 +324,17 @@ bool update_plasma(void)
 
 bool update_boss(void)
 {
-    if(normal_sprite_boss_pointer.cs_position.x > 160) normal_sprite_boss_pointer.cs_position.x -= 1;
-    //if(normal_sprite_boss_pointer.cs_position.y == 80) normal_sprite_boss_pointer.cs_position.y = 82;
-    //else normal_sprite_boss_pointer.cs_position.y = 80;    
+    //if(normal_sprite_boss_pointer.cs_position.x > 160) normal_sprite_boss_pointer.cs_position.x -= 1;
+    
+    int16_t spaceship_mid_y = g_scroll_sprite_y + normal_sprite_spaceship_pointer.cs_height/2;
+    int16_t boss_mid_y = normal_sprite_boss_pointer.cs_position.y + normal_sprite_boss_pointer.cs_height/2;
+    
+    if(spaceship_mid_y < boss_mid_y) normal_sprite_boss_pointer.cs_position.y--;
+    if(spaceship_mid_y > boss_mid_y) normal_sprite_boss_pointer.cs_position.y++;
+    if(normal_sprite_boss_pointer.cs_position.x - normal_sprite_spaceship_pointer.cs_width - g_scroll_sprite_x < 50)
+        normal_sprite_boss_pointer.cs_position.x++;
+    else if(normal_sprite_boss_pointer.cs_position.x - normal_sprite_spaceship_pointer.cs_width - g_scroll_sprite_x > 50) 
+        normal_sprite_boss_pointer.cs_position.x--;
     
     return true;
 }
@@ -433,6 +442,8 @@ int main(void)
 	/* Main loop */
 	while (!padButton) 
 	{
+        read_digital_pad(); 
+                
 	  	vdp2_tvmd_vblank_in_wait();
         
         // update positions
@@ -476,8 +487,6 @@ int main(void)
         vdp1_cmdt_list_end(0);
         vdp2_tvmd_vblank_in_wait();
         vdp1_cmdt_list_commit();           
-        
-        read_digital_pad();   
         
         vdp2_tvmd_vblank_out_wait();
     }
