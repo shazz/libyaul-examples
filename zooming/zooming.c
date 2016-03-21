@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-#include "zooming2.h"
+#include "zooming3.h"
 
 /*
  * VDP2 VRAM Organization
@@ -33,12 +33,12 @@
  * - TVMD: enable display, border color mode to back screen, 240 lines vertical resolution
 */ 
 
-#define NGB0_PNT_PLANE0     zooming2_pattern_name_table_page0
-#define NGB0_PNT_PLANE1     zooming2_pattern_name_table_page1
+#define NGB0_PNT_PLANE0     zooming3_pattern_name_table_page0
+#define NGB0_PNT_PLANE1     zooming3_pattern_name_table_page1
 //#define NGB0_PNT_PLANE2     zooming2_pattern_name_table_page2
 //#define NGB0_PNT_PLANE3     zooming2_pattern_name_table_page3
-#define NGB0_CD             zooming2_cell_data
-#define NGB0_CP             zooming2_cell_palette
+#define NGB0_CD             zooming3_cell_data
+#define NGB0_CP             zooming3_cell_palette
 
 void vdp2_scrn_zm_x_set(uint8_t scrn, uint16_t in, uint16_t dn);
 void vdp2_scrn_zm_y_set(uint8_t scrn, uint16_t in, uint16_t dn);
@@ -55,13 +55,13 @@ static void vblank_out_handler(irq_mux_handle_t *);
 static uint16_t *_nbg0_planes[4] = { /* VRAM A0 */
         (uint16_t *)VRAM_ADDR_4MBIT(0, 0x0),
         (uint16_t *)VRAM_ADDR_4MBIT(0, 0x2000),
-        (uint16_t *)VRAM_ADDR_4MBIT(0, 0x0000),    //not used
-        (uint16_t *)VRAM_ADDR_4MBIT(0, 0x0000)     //not used
+        (uint16_t *)VRAM_ADDR_4MBIT(0, 0x4000),    //not used
+        (uint16_t *)VRAM_ADDR_4MBIT(0, 0x6000)     //not used
 }; 
 
 
 /* VRAM A0 after planes, CRAM */
-static uint32_t *_nbg0_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(0, 0x6000);
+static uint32_t *_nbg0_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(0, 0x4000);
 static uint32_t *_nbg0_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(0, 0, 0);
 
 
@@ -70,6 +70,7 @@ uint16_t g_zooming_factor_in = 1;
 
 // joypad
 static unsigned int joyLeft = 0, joyRight = 0, joyUp = 0, joyDown = 0, joyA = 0;    
+
     
 /*
  * void init_scrollscreen_nbg(int screen, uint16_t *planes[], uint32_t *cell_data_ptr, uint32_t *palette_ptr, uint16_t page0_data[], uint16_t page1_data[], uint8_t priority, bool transparent) 
@@ -89,7 +90,7 @@ void init_scrollscreen_nbg(int screen, uint16_t *planes[], uint32_t *cell_data_p
     vdp2_tvmd_display_clear();
 
 	nbg_format.scf_scroll_screen = screen;
-	nbg_format.scf_cc_count = SCRN_CCC_PALETTE_256;
+	nbg_format.scf_cc_count = SCRN_CCC_PALETTE_16;
 	nbg_format.scf_character_size= 1 * 1;
 	nbg_format.scf_pnd_size = 1; /* 1 word */
 	nbg_format.scf_auxiliary_mode = 1;
@@ -126,18 +127,6 @@ void init_scrollscreen_nbg(int screen, uint16_t *planes[], uint32_t *cell_data_p
         //nbg_page3[i] = cell_data_number3 | palette_number;
 	}
 
-#define SCRN_NBGX_PAGE_SIZE(format)                                            \
-        (((SCRN_PLANE_PAGE_WIDTH * SCRN_PLANE_PAGE_HEIGHT * 2) /               \
-            ((format).scf_character_size)) *                                  \
-            ((format).scf_pnd_size))
-    /* Calculate the lead map (plane A) address mask bits */
-    uint16_t map_mask = (((0x0080 << (nbg_format.scf_character_size >> 2)) - 1) / nbg_format.scf_pnd_size) - (nbg_format.scf_plane_size - 1);
-    uint16_t plane_b = (nbg_format.scf_map.plane_b / SCRN_NBGX_PAGE_SIZE(nbg_format)) & map_mask;
-    /* Mask the upper 3-bits */
-    uint16_t map_offset = (plane_b & 0x01C0) >> 6;    
-    MEMORY_WRITE(16, VDP2(PLSZ), 3);
-    MEMORY_WRITE(16, VDP2(MPOFN), map_offset);
-    
     vdp2_scrn_display_set(screen, transparent);
 }
 
@@ -155,6 +144,24 @@ void set_VRAM_access_priorities()
     vram_ctl->vram_cycp.pt[0].t5 = VRAM_CTL_CYCP_CHPNDR_NBG0;
     vram_ctl->vram_cycp.pt[0].t6 = VRAM_CTL_CYCP_CHPNDR_NBG0;
     vram_ctl->vram_cycp.pt[0].t7 = VRAM_CTL_CYCP_CHPNDR_NBG0;    
+    
+    vram_ctl->vram_cycp.pt[1].t0 = VRAM_CTL_CYCP_PNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t1 = VRAM_CTL_CYCP_PNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t2 = VRAM_CTL_CYCP_PNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t3 = VRAM_CTL_CYCP_PNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t4 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t5 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t6 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t7 = VRAM_CTL_CYCP_CHPNDR_NBG0;     
+
+    vram_ctl->vram_cycp.pt[2].t0 = VRAM_CTL_CYCP_PNDR_NBG0;
+    vram_ctl->vram_cycp.pt[2].t1 = VRAM_CTL_CYCP_PNDR_NBG0;
+    vram_ctl->vram_cycp.pt[2].t2 = VRAM_CTL_CYCP_PNDR_NBG0;
+    vram_ctl->vram_cycp.pt[2].t3 = VRAM_CTL_CYCP_PNDR_NBG0;
+    vram_ctl->vram_cycp.pt[2].t4 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[2].t5 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[2].t6 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[2].t7 = VRAM_CTL_CYCP_CHPNDR_NBG0;       
     
     vdp2_vram_control_set(vram_ctl);
 }
@@ -227,7 +234,7 @@ int main(void)
 {
     uint32_t padButton = 0;
     uint32_t g_scroll_back4_x = 0;
-    int16_t  g_scroll_back4_y = 128;
+    int16_t  g_scroll_back4_y = 128; //384;
 
     irq_mux_t *vblank_in;
     irq_mux_t *vblank_out;
@@ -239,7 +246,7 @@ int main(void)
     MEMORY_WRITE(16, VDP2(TVMD), 0x8110);        
     
 	// enable zoom out to 1/4 as we are in 16 colors mode for NBG0 (2 first bits, bits 8-9 for NBG1), that disables NBG2 display
-	//MEMORY_WRITE(16, VDP2(ZMCTL), 0x03);    
+	MEMORY_WRITE(16, VDP2(ZMCTL), 0x03);    
     
     vdp1_init();
     smpc_init();
@@ -265,8 +272,8 @@ int main(void)
         g_scroll_back4_x++;
         vdp2_scrn_scv_x_set(SCRN_NBG0, g_scroll_back4_x, 0);
         vdp2_scrn_scv_y_set(SCRN_NBG0, g_scroll_back4_y, 0);
-        //vdp2_scrn_zm_x_set(SCRN_NBG0, g_zooming_factor_in, g_zooming_factor_dn);
-        //vdp2_scrn_zm_y_set(SCRN_NBG0, g_zooming_factor_in, g_zooming_factor_dn);
+        vdp2_scrn_zm_x_set(SCRN_NBG0, g_zooming_factor_in, g_zooming_factor_dn);
+        vdp2_scrn_zm_y_set(SCRN_NBG0, g_zooming_factor_in, g_zooming_factor_dn);
         
         read_digital_pad();   
         
