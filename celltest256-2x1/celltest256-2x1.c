@@ -2,9 +2,10 @@
 #include <stdlib.h>
 
 //#define PN_2x1_2WORDS_256
-#define PN_2x1_1WORD_AUX_256
+//#define PN_2x1_1WORD_AUX_256
 //#define PN_2x1_1WORD_NOAUX_256
-//#define PN_2x1_1WORD_AUX_16
+#define PN_2x1_1WORD_AUX_16
+//#define PN_2x1_1WORD_NOAUX_16
 //#define PN_1x1_1WORD_AUX_256
 //#define PN_1x1_1WORD_NOAUX_256
 
@@ -12,30 +13,43 @@
 #include "test3.h"
 #define CP_ADDRESS 0x6000
 #define CP_BANK	   0
+// doesn't work for bank 0, messy after some pixels on the right
 #endif
 
 #ifdef PN_2x1_1WORD_AUX_256
 #include "test.h"
 #define CP_ADDRESS 0x0000
-#define CP_BANK    2
-#endif
-
-#ifdef PN_2x1_1WORD_AUX_16
-#include "test2.h"
-#define CP_ADDRESS 0x6000
-#define CP_BANK    2
+#define CP_BANK    2 // not working
 #endif
 
 #ifdef PN_2x1_1WORD_NOAUX_256
 #include "test.h"
-#define CP_ADDRESS 0x6000
-#define CP_BANK    2
+#define CP_ADDRESS 0x8000
+#define CP_BANK    2 // not working
 #endif
 
-#if defined(PN_1x1_1WORD_AUX_256) || defined(PN_1x1_1WORD_NOAUX_256)
+#ifdef PN_2x1_1WORD_AUX_16
+#include "test2.h"
+#define CP_ADDRESS 0x4000
+#define CP_BANK    0 // working
+#endif
+
+#ifdef PN_2x1_1WORD_NOAUX_16
+#include "test2.h"
+#define CP_ADDRESS 0x1000
+#define CP_BANK    1 // working 1/3 then messy
+#endif
+
+#if defined(PN_1x1_1WORD_AUX_256)
 #include "test4.h"
-#define CP_ADDRESS 0x6000
-#define CP_BANK    2
+#define CP_ADDRESS 0x1000
+#define CP_BANK    0
+#endif
+
+#if defined(PN_1x1_1WORD_NOAUX_256)
+#include "test4.h"
+#define CP_ADDRESS 0x0000
+#define CP_BANK    1 // working 1/3 then messy, needs VRAM_CTL_CYCP_CHPNDR_NBG0
 #endif
 
 /*
@@ -101,7 +115,7 @@ void init_scrollscreen_nbg0(void)
 	nbg0_format.scf_scroll_screen = SCRN_NBG0;
     nbg0_format.scf_character_size= 1 * 1;
 
-#ifdef PN_2x1_1WORD_AUX_16
+#if defined(PN_2x1_1WORD_AUX_16) || defined(PN_2x1_1WORD_NOAUX_16)
 	nbg0_format.scf_cc_count = SCRN_CCC_PALETTE_16;
 #else
 	nbg0_format.scf_cc_count = SCRN_CCC_PALETTE_256;
@@ -140,20 +154,37 @@ void init_scrollscreen_nbg0(void)
     vram_ctl->vram_cycp.pt[0].t6 = VRAM_CTL_CYCP_CHPNDR_NBG0;
     vram_ctl->vram_cycp.pt[0].t5 = VRAM_CTL_CYCP_PNDR_NBG0;
     vram_ctl->vram_cycp.pt[0].t4 = VRAM_CTL_CYCP_PNDR_NBG0;
-    vram_ctl->vram_cycp.pt[0].t3 = VRAM_CTL_CYCP_NO_ACCESS;
-    vram_ctl->vram_cycp.pt[0].t2 = VRAM_CTL_CYCP_NO_ACCESS;
-    vram_ctl->vram_cycp.pt[0].t1 = VRAM_CTL_CYCP_NO_ACCESS;
-    vram_ctl->vram_cycp.pt[0].t0 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[0].t3 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[0].t2 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[0].t1 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[0].t0 = VRAM_CTL_CYCP_CHPNDR_NBG0;
 
+    vram_ctl->vram_cycp.pt[1].t7 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t6 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t5 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t4 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t3 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t2 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t1 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[1].t0 = VRAM_CTL_CYCP_CHPNDR_NBG0;
 
     vram_ctl->vram_cycp.pt[2].t7 = VRAM_CTL_CYCP_CHPNDR_NBG0;
     vram_ctl->vram_cycp.pt[2].t6 = VRAM_CTL_CYCP_CHPNDR_NBG0;
-    vram_ctl->vram_cycp.pt[2].t5 = VRAM_CTL_CYCP_PNDR_NBG0;
-    vram_ctl->vram_cycp.pt[2].t4 = VRAM_CTL_CYCP_PNDR_NBG0;
-    vram_ctl->vram_cycp.pt[2].t3 = VRAM_CTL_CYCP_NO_ACCESS;
-    vram_ctl->vram_cycp.pt[2].t2 = VRAM_CTL_CYCP_NO_ACCESS;
-    vram_ctl->vram_cycp.pt[2].t1 = VRAM_CTL_CYCP_NO_ACCESS;
-    vram_ctl->vram_cycp.pt[2].t0 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[2].t5 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[2].t4 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[2].t3 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[2].t2 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[2].t1 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[2].t0 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    
+    vram_ctl->vram_cycp.pt[3].t7 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[3].t6 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[3].t5 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[3].t4 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[3].t3 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[3].t2 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[3].t1 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[3].t0 = VRAM_CTL_CYCP_NO_ACCESS;    
 
 
     vdp2_vram_control_set(vram_ctl);
@@ -185,6 +216,10 @@ void init_scrollscreen_nbg0(void)
 #endif
 #ifdef PN_2x1_1WORD_AUX_16
     uint16_t _nbg0_cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)VRAM_ADDR_4MBIT(CP_BANK, CP_ADDRESS));
+    uint16_t _nbg0_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE_1_OFFSET(0, 0, 0));
+#endif
+#ifdef PN_2x1_1WORD_NOAUX_16
+    uint16_t _nbg0_cell_data_number = VDP2_PN_CONFIG_0_CHARACTER_NUMBER((uint32_t)VRAM_ADDR_4MBIT(CP_BANK, CP_ADDRESS));
     uint16_t _nbg0_palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER(CRAM_MODE_1_OFFSET(0, 0, 0));
 #endif
 #ifdef PN_1x1_1WORD_AUX_256
@@ -265,6 +300,8 @@ int main(void)
         vdp2_scrn_scv_y_set(SCRN_NBG0, 128, 0);
 #endif
         if(g_digital.pressed.button.start) abort();
+        if(g_digital.pressed.button.right) g_scroll_back4_x++;
+        if(g_digital.pressed.button.left) g_scroll_back4_x--;
 
         vdp2_tvmd_vblank_out_wait();
     }
