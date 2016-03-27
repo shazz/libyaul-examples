@@ -16,6 +16,7 @@ SUB_BUILD:= $(BUILD)/lib$(TARGET)
 
 SRCS:= dma_wrapper.c \
 	sequencer.c \
+    collide.c \
 	tim_frt_wrapper.c \
 	math.S \
 	math_fix.S \
@@ -24,6 +25,7 @@ SRCS:= dma_wrapper.c \
 HEADER_FILES:= langam.h \
 	dma_wrapper.h \
 	sequencer.h \
+    collide.h \
 	tim_frt_wrapper.h \
 	vdp2_rbg_wrapper.h
 

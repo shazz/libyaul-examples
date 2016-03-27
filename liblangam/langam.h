@@ -20,4 +20,7 @@
 /* Demo Sequencer */
 #include <sequencer.h>
 
+/* VDP1 Sprite collision detection */
+#include <collide.h>
+
 #endif /* !_LIBLANGAM_H_ */
