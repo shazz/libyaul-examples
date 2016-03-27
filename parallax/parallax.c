@@ -133,6 +133,9 @@ static int16_t g_scroll_sprite_y = 10;
 static bool g_button_a_is_pushed = false;
 static int16_t g_button_a_is_pushed_x = -40;   
 
+static bool g_show_plasma = false;
+static bool g_show_boss = true;
+
 /*
  * void init_scrollscreen_nbg(int screen, uint16_t *planes[], uint32_t *cell_data_ptr, uint32_t *palette_ptr, uint16_t page0_data[], uint16_t page1_data[], uint8_t priority, bool transparent) 
  * 
@@ -288,6 +291,7 @@ void read_digital_pad(void)
         if (joyA)
 		{
             g_button_a_is_pushed = true;
+            g_show_plasma = true;
             g_button_a_is_pushed_x = g_scroll_sprite_x + 48;
 		}        
 		
@@ -296,11 +300,26 @@ void read_digital_pad(void)
 	}  
 }
 
+void check_collisions()
+{
+    //if(collide_bounding_circle(&normal_sprite_boss_pointer, &normal_sprite_plasma_pointer, 10) != 0) return false;
+    //if(collide_bounding_box(&normal_sprite_boss_pointer, &normal_sprite_plasma_pointer) != 0) return false;
+    
+    if(g_show_plasma && g_show_boss)
+    {
+        if(collide_pixel(&normal_sprite_boss_pointer, &normal_sprite_plasma_pointer, 4) != 0)
+        { 
+            g_show_boss = false;
+            g_button_a_is_pushed = false;
+        }
+    }
+}
+
 /*
- * bool update_plasma(void)
+ * void update_plasma(void)
  * set plasma position and decide to show or not
  */ 
-bool update_plasma(void)
+void update_plasma(void)
 {
     if(g_button_a_is_pushed)
     {
@@ -315,16 +334,25 @@ bool update_plasma(void)
         {
             g_button_a_is_pushed = false;
             normal_sprite_plasma_pointer.cs_position.x  = -40;
-            return false;
+            g_show_plasma = false;
         }
-        return true;
+        g_show_plasma = true;
     } 
-    return false;
+    else
+    {
+        g_show_plasma = false;
+        normal_sprite_plasma_pointer.cs_position.x  = -40;
+    }
 }       
 
-bool update_boss(void)
-{
-    //if(normal_sprite_boss_pointer.cs_position.x > 160) normal_sprite_boss_pointer.cs_position.x -= 1;
+void update_boss(void)
+{  
+    if(!g_show_boss)
+    {
+        normal_sprite_boss_pointer.cs_position.x = 340;
+        normal_sprite_boss_pointer.cs_position.y = 80;       
+        g_show_boss = true;
+    }
     
     int16_t spaceship_mid_y = g_scroll_sprite_y + normal_sprite_spaceship_pointer.cs_height/2;
     int16_t boss_mid_y = normal_sprite_boss_pointer.cs_position.y + normal_sprite_boss_pointer.cs_height/2;
@@ -335,8 +363,6 @@ bool update_boss(void)
         normal_sprite_boss_pointer.cs_position.x++;
     else if(normal_sprite_boss_pointer.cs_position.x - normal_sprite_spaceship_pointer.cs_width - g_scroll_sprite_x > 50) 
         normal_sprite_boss_pointer.cs_position.x--;
-    
-    return true;
 }
 
 void init_vdp1_sprites(void)
@@ -445,7 +471,7 @@ int main(void)
         read_digital_pad(); 
                 
 	  	vdp2_tvmd_vblank_in_wait();
-        
+    
         // update positions
         vdp2_scrn_scv_x_set(SCRN_NBG0, g_scroll_back4_x, 0);
         vdp2_scrn_scv_x_set(SCRN_NBG1, g_scroll_back3_x, 0);
@@ -468,6 +494,10 @@ int main(void)
         g_scroll_back3_y = 33 + ( g_scroll_sprite_y - (240/2)) / 8;
         g_scroll_back4_y = 33 + ( g_scroll_sprite_y - (240/2)) / 9;
         
+        check_collisions();
+        update_plasma();
+        update_boss();
+        
         // show sprite
         vdp1_cmdt_list_begin(0); 
         {
@@ -479,8 +509,8 @@ int main(void)
             normal_sprite_spaceship_pointer.cs_position.y = g_scroll_sprite_y;
                         
             vdp1_cmdt_sprite_draw(&normal_sprite_spaceship_pointer);
-            if(update_plasma())     vdp1_cmdt_sprite_draw(&normal_sprite_plasma_pointer);            
-            if(update_boss())       vdp1_cmdt_sprite_draw(&normal_sprite_boss_pointer);
+            if(g_show_plasma)     vdp1_cmdt_sprite_draw(&normal_sprite_plasma_pointer);            
+            if(g_show_boss)       vdp1_cmdt_sprite_draw(&normal_sprite_boss_pointer);
 
             vdp1_cmdt_end();
         } 
