@@ -114,9 +114,9 @@ static uint32_t *_nbg3_cell_data = (uint32_t *)VRAM_ADDR_4MBIT(3, 0x4000);
 static uint32_t *_nbg3_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(3, 0, 0);
 
 // sprites 
-static uint32_t _spaceship_char_pat_data = (uint32_t)CHAR(0x220);
+static uint32_t _spaceship_char_pat_data = (uint32_t)CHAR(0x220);  
 static uint32_t _boss_char_pat_data = (uint32_t)CHAR(0x1020);
-static uint32_t _plasma_char_pat_data = (uint32_t)CHAR(0x7700);
+static uint32_t _plasma_char_pat_data = (uint32_t)CHAR(0xD2E0);
 
 struct vdp1_cmdt_sprite normal_sprite_spaceship_pointer; 
 struct vdp1_cmdt_sprite normal_sprite_boss_pointer; 
@@ -245,8 +245,8 @@ void init_vdp2_scrollescreens(void)
             (uint32_t)sizeof(NGB3_CD), (uint32_t)_nbg3_cell_data, (uint32_t)NGB3_CD, 
             (uint32_t)sizeof(NGB3_CP), (uint32_t)_nbg3_color_palette, (uint32_t)NGB3_CP,
             (uint32_t)sizeof(spaceship_char_pat), _spaceship_char_pat_data, (uint32_t)spaceship_char_pat,
-            (uint32_t)sizeof(boss_ecd_char_pat), _boss_char_pat_data, (uint32_t)boss_ecd_char_pat,
-            (uint32_t)sizeof(plasma_char_pat), _plasma_char_pat_data, (uint32_t)plasma_char_pat,
+            (uint32_t)sizeof(plasma_char_pat), _plasma_char_pat_data, (uint32_t)plasma_char_pat,            
+            (uint32_t)sizeof(boss_ecd_char_pat), _boss_char_pat_data, (uint32_t)boss_ecd_char_pat
     };    
     scu_dma_listcpy(dma_tbl, 11*3);
     while(scu_dma_get_status(SCU_DMA_ALL_CH) == SCU_DMA_STATUS_WAIT);
@@ -363,6 +363,7 @@ void update_boss(void)
         normal_sprite_boss_pointer.cs_position.x++;
     else if(normal_sprite_boss_pointer.cs_position.x - normal_sprite_spaceship_pointer.cs_width - g_scroll_sprite_x > 50) 
         normal_sprite_boss_pointer.cs_position.x--;
+        
 }
 
 void init_vdp1_sprites(void)
@@ -407,7 +408,7 @@ void init_vdp1_sprites(void)
     normal_sprite_boss_pointer.cs_mode.user_clipping = 1;
     normal_sprite_boss_pointer.cs_mode.end_code = 1;
     normal_sprite_boss_pointer.cs_mode.transparent_pixel = 1;    
-    normal_sprite_boss_pointer.cs_width = 160; // multiple of 8
+    normal_sprite_boss_pointer.cs_width = 154; // multiple of 8
     normal_sprite_boss_pointer.cs_height = 82; // multiple of 1
     normal_sprite_boss_pointer.cs_position.x = 320;
     normal_sprite_boss_pointer.cs_position.y = 80;
@@ -535,4 +536,17 @@ static void vblank_in_handler(irq_mux_handle_t *irq_mux __unused)
 static void vblank_out_handler(irq_mux_handle_t *irq_mux __unused)
 {
  	tick = (tick & 0xFFFFFFFF) + 1;
+    
+    if(tick % 10 == 0)
+    {
+        // change sprite
+        if(normal_sprite_boss_pointer.cs_char == _boss_char_pat_data)
+        {
+            normal_sprite_boss_pointer.cs_char = _boss_char_pat_data + 24928;  
+        }
+        else
+        {
+           normal_sprite_boss_pointer.cs_char = _boss_char_pat_data;
+        }   
+    } 
 }
