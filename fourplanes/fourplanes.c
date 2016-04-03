@@ -248,11 +248,9 @@ config_0(void)
                 page_idx = page_x + (page_width * page_y);
 
                 uint16_t pnd;
-                
-                //uint16_t cell_data_number = cpd_data_number + misery512_character_pattern[i];
-                //nbg3_page0[i] = cell_data_number | palette_number;                
+                         
                 //pnd = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette);
-                pnd = (VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) + misery512_character_pattern[page_x + (page_y*page_width)]) | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette);
+                pnd = (VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) + misery512_character_pattern[page_idx]) | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette);
 
                 a_pages[0][page_idx] = pnd;
                 a_pages[1][page_idx] = pnd;
