@@ -250,7 +250,7 @@ config_0(void)
                 uint16_t pnd;
                          
                 //pnd = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette);
-                pnd = (VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) + misery512_character_pattern[page_idx]) | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette);
+                pnd = (VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) + misery512_pattern_name_table_page_0[page_idx]) | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette);
 
                 a_pages[0][page_idx] = pnd;
                 a_pages[1][page_idx] = pnd;
