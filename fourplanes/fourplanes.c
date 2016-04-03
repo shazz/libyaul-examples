@@ -219,11 +219,13 @@ static void
 config_1(void)
 {
     struct scrn_cell_format format;
-
-    //uint32_t *_nbg1_color_palette = (uint32_t *)CRAM_MODE_1_OFFSET(0, 0, 0);
-    
-    uint16_t *color_palette;
-    color_palette = (uint16_t *)CRAM_MODE_1_OFFSET(0, 0, 0);
+   
+    uint16_t *color_palette0 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 0, 0);
+    uint16_t *color_palette1 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 1, 0);
+    uint16_t *color_palette2 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 2, 0);
+    uint16_t *color_palette3 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 3, 0);
+    uint16_t *color_palette4 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 4, 0);
+    uint16_t *color_palette5 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 5, 0);
     
     uint16_t *planes[4];
     planes[0] = (uint16_t *)VRAM_ADDR_4MBIT(0, 0x08000);
@@ -242,7 +244,7 @@ config_1(void)
     format.scf_auxiliary_mode = 1;
     format.scf_plane_size = 2 * 2;
     format.scf_cp_table = (uint32_t)cpd;
-    format.scf_color_palette = (uint32_t)color_palette;
+    format.scf_color_palette = (uint32_t)color_palette0;
     format.scf_map.plane_a = (uint32_t)planes[0];
     format.scf_map.plane_b = (uint32_t)planes[1];
     format.scf_map.plane_c = (uint32_t)planes[2];
@@ -255,8 +257,8 @@ config_1(void)
     vram_ctl->vram_cycp.pt[0].t6 = VRAM_CTL_CYCP_PNDR_NBG1;
     vram_ctl->vram_cycp.pt[0].t5 = VRAM_CTL_CYCP_PNDR_NBG1;
     vram_ctl->vram_cycp.pt[0].t4 = VRAM_CTL_CYCP_PNDR_NBG1;
-    vram_ctl->vram_cycp.pt[0].t3 = VRAM_CTL_CYCP_NO_ACCESS;
-    vram_ctl->vram_cycp.pt[0].t2 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[0].t3 = VRAM_CTL_CYCP_PNDR_NBG1;
+    vram_ctl->vram_cycp.pt[0].t2 = VRAM_CTL_CYCP_PNDR_NBG1;
     vram_ctl->vram_cycp.pt[0].t1 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[0].t0 = VRAM_CTL_CYCP_NO_ACCESS;
 
@@ -264,8 +266,8 @@ config_1(void)
     vram_ctl->vram_cycp.pt[2].t6 = VRAM_CTL_CYCP_CHPNDR_NBG1;
     vram_ctl->vram_cycp.pt[2].t5 = VRAM_CTL_CYCP_CHPNDR_NBG1;
     vram_ctl->vram_cycp.pt[2].t4 = VRAM_CTL_CYCP_CHPNDR_NBG1;
-    vram_ctl->vram_cycp.pt[2].t3 = VRAM_CTL_CYCP_NO_ACCESS;
-    vram_ctl->vram_cycp.pt[2].t2 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[2].t3 = VRAM_CTL_CYCP_CHPNDR_NBG1;
+    vram_ctl->vram_cycp.pt[2].t2 = VRAM_CTL_CYCP_CHPNDR_NBG1;
     vram_ctl->vram_cycp.pt[2].t1 = VRAM_CTL_CYCP_NO_ACCESS;
     vram_ctl->vram_cycp.pt[2].t0 = VRAM_CTL_CYCP_NO_ACCESS;
 
@@ -276,7 +278,13 @@ config_1(void)
         memcpy(cpd, misery512_character_pattern, sizeof(misery512_character_pattern));        
         
         /* Copy the palette data */
-        memcpy(color_palette, misery512_cell_palette, sizeof(misery512_cell_palette));
+        memcpy(color_palette0, misery512_cell_palette0, sizeof(misery512_cell_palette0));
+        memcpy(color_palette1, misery512_cell_palette1, sizeof(misery512_cell_palette1));
+        memcpy(color_palette2, misery512_cell_palette2, sizeof(misery512_cell_palette2));
+        memcpy(color_palette3, misery512_cell_palette3, sizeof(misery512_cell_palette3));
+        memcpy(color_palette4, misery512_cell_palette4, sizeof(misery512_cell_palette4));
+        memcpy(color_palette5, misery512_cell_palette5, sizeof(misery512_cell_palette5));
+             
         
         uint32_t page_width;
         page_width = SCRN_CALCULATE_PAGE_WIDTH(&format);
@@ -318,29 +326,27 @@ config_1(void)
                 page_idx = page_x + (page_width * page_y);
 
                 uint16_t pnd;
-                         
-                //pnd = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette);
-                pnd = (VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) + misery512_pattern_name_table_page_0[page_idx]) | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette);
+                pnd = (VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) + misery512_pattern_name_table_page_0[page_idx]);
 
-                a_pages[0][page_idx] = pnd;
-                a_pages[1][page_idx] = pnd;
-                a_pages[2][page_idx] = pnd;
-                a_pages[3][page_idx] = pnd;
+                a_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette0);
+                a_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette1);
+                a_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette2);
+                a_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette3);
 
-                b_pages[0][page_idx] = pnd;
-                b_pages[1][page_idx] = pnd;
-                b_pages[2][page_idx] = pnd;
-                b_pages[3][page_idx] = pnd;
+                b_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette4);
+                b_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette5);
+                b_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette0);
+                b_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette1);
 
-                c_pages[0][page_idx] = pnd;
-                c_pages[1][page_idx] = pnd;
-                c_pages[2][page_idx] = pnd;
-                c_pages[3][page_idx] = pnd;
+                c_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette2);
+                c_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette3);
+                c_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette4);
+                c_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette5);
                 
-                d_pages[0][page_idx] = pnd;
-                d_pages[1][page_idx] = pnd;
-                d_pages[2][page_idx] = pnd;
-                d_pages[3][page_idx] = pnd;
+                d_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette0);
+                d_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette1);
+                d_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette2);
+                d_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette3);
             }
         }
 
@@ -362,7 +368,6 @@ config_1(void)
  * max zoom out is set to 1/4 means value = 4
  * max zoom out is constrainted by bitmap color depth: 1/4 in 16 colors mode, 1/2 in 16/256 colors mode
  */
-
 void vdp2_scrn_zm_x_set(uint8_t scrn, uint16_t in, uint16_t dn)
 {
 #define ZMXIN0          0x0078
