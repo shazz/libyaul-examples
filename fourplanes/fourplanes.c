@@ -226,6 +226,16 @@ config_1(void)
     uint16_t *color_palette3 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 3, 0);
     uint16_t *color_palette4 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 4, 0);
     uint16_t *color_palette5 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 5, 0);
+    uint16_t *color_palette6 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 6, 0);
+    uint16_t *color_palette7 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 7, 0);
+    uint16_t *color_palette8 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 8, 0);
+    uint16_t *color_palette9 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 9, 0);
+    uint16_t *color_palette10 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 10, 0);
+    uint16_t *color_palette11 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 11, 0);
+    uint16_t *color_palette12 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 12, 0);
+    uint16_t *color_palette13 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 13, 0);
+    uint16_t *color_palette14 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 14, 0);
+    uint16_t *color_palette15 = (uint16_t *)CRAM_MODE_1_OFFSET(0, 15, 0);
     
     uint16_t *planes[4];
     planes[0] = (uint16_t *)VRAM_ADDR_4MBIT(0, 0x08000);
@@ -284,6 +294,16 @@ config_1(void)
         memcpy(color_palette3, misery512_cell_palette3, sizeof(misery512_cell_palette3));
         memcpy(color_palette4, misery512_cell_palette4, sizeof(misery512_cell_palette4));
         memcpy(color_palette5, misery512_cell_palette5, sizeof(misery512_cell_palette5));
+        memcpy(color_palette6, misery512_cell_palette6, sizeof(misery512_cell_palette5));
+        memcpy(color_palette7, misery512_cell_palette7, sizeof(misery512_cell_palette5));
+        memcpy(color_palette8, misery512_cell_palette8, sizeof(misery512_cell_palette5));
+        memcpy(color_palette9, misery512_cell_palette9, sizeof(misery512_cell_palette5));
+        memcpy(color_palette10, misery512_cell_palette10, sizeof(misery512_cell_palette5));
+        memcpy(color_palette11, misery512_cell_palette11, sizeof(misery512_cell_palette5));
+        memcpy(color_palette12, misery512_cell_palette12, sizeof(misery512_cell_palette5));
+        memcpy(color_palette13, misery512_cell_palette13, sizeof(misery512_cell_palette5));
+        memcpy(color_palette14, misery512_cell_palette14, sizeof(misery512_cell_palette5));
+        memcpy(color_palette15, misery512_cell_palette15, sizeof(misery512_cell_palette5));
              
         
         uint32_t page_width;
@@ -335,18 +355,18 @@ config_1(void)
 
                 b_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette4);
                 b_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette5);
-                b_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette0);
-                b_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette1);
+                b_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette6);
+                b_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette7);
 
-                c_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette2);
-                c_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette3);
-                c_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette4);
-                c_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette5);
+                c_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette8);
+                c_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette9);
+                c_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette10);
+                c_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette11);
                 
-                d_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette0);
-                d_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette1);
-                d_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette2);
-                d_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette3);
+                d_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette12);
+                d_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette13);
+                d_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette14);
+                d_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette15);
             }
         }
 
