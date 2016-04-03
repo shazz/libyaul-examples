@@ -11,6 +11,7 @@
 #include <stdlib.h>
 
 #include "misery512.h"
+#include "saturn16.h"
 
 static struct smpc_peripheral_digital digital_pad;
 static uint32_t tick = 0;
@@ -21,6 +22,7 @@ static void vblank_out_handler(irq_mux_handle_t *);
 static void hardware_init(void);
 
 static void config_0(void);
+static void config_1(void);
 
 static uint16_t x = 0;
 static uint16_t y = 0;
@@ -36,6 +38,7 @@ main(void)
 {
     hardware_init();
 
+    config_1();
     config_0();
 
     while (true) 
@@ -147,6 +150,73 @@ vblank_out_handler(irq_mux_handle_t *irq_mux __unused)
 
 static void
 config_0(void)
+{
+    struct scrn_cell_format format;
+   
+    uint16_t *color_palette;
+    color_palette = (uint16_t *)CRAM_MODE_1_OFFSET(1, 0, 0);
+    
+    uint16_t *planes[4];
+    planes[0] = (uint16_t *)VRAM_ADDR_4MBIT(3, 0x00000);
+    planes[1] = (uint16_t *)VRAM_ADDR_4MBIT(3, 0x00000);
+    planes[2] = (uint16_t *)VRAM_ADDR_4MBIT(3, 0x00000);
+    planes[3] = (uint16_t *)VRAM_ADDR_4MBIT(3, 0x00000);
+    
+    uint32_t *cpd;
+    cpd = (uint32_t *)VRAM_ADDR_4MBIT(3, 0x2000);
+
+    format.scf_scroll_screen = SCRN_NBG0;
+    format.scf_cc_count = SCRN_CCC_PALETTE_16;
+    format.scf_character_size = 1 * 1;
+    format.scf_pnd_size = 1; /* 1-word */
+    format.scf_auxiliary_mode = 1;
+    format.scf_plane_size = 1 * 1;
+    format.scf_cp_table = (uint32_t)cpd;
+    format.scf_color_palette = (uint32_t)color_palette;
+    format.scf_map.plane_a = (uint32_t)planes[0];
+    format.scf_map.plane_b = (uint32_t)planes[1];
+    format.scf_map.plane_c = (uint32_t)planes[2];
+    format.scf_map.plane_d = (uint32_t)planes[3];
+
+    struct vram_ctl *vram_ctl;
+    vram_ctl = vdp2_vram_control_get();
+
+    vram_ctl->vram_cycp.pt[3].t7 = VRAM_CTL_CYCP_PNDR_NBG0;
+    vram_ctl->vram_cycp.pt[3].t6 = VRAM_CTL_CYCP_CHPNDR_NBG0;
+    vram_ctl->vram_cycp.pt[3].t5 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[3].t4 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[3].t3 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[3].t2 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[3].t1 = VRAM_CTL_CYCP_NO_ACCESS;
+    vram_ctl->vram_cycp.pt[3].t0 = VRAM_CTL_CYCP_NO_ACCESS;
+
+    /* We want to be in VBLANK-IN (retrace) */
+    vdp2_tvmd_display_clear(); {
+        
+        /* Copy the cell data */
+        memcpy(cpd, saturn16_character_pattern, sizeof(saturn16_character_pattern));        
+        
+        /* Copy the palette data */
+        memcpy(color_palette, saturn16_cell_palette, sizeof(saturn16_cell_palette));
+        
+        uint32_t i;
+        uint16_t *nbg0_page0 = planes[0];
+
+        for (i = 0; i < 2048; i++) 
+        {
+            nbg0_page0[i] = (VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) + saturn16_pattern_name_table_page_0[i]) | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette);
+        }
+
+        vdp2_vram_control_set(vram_ctl);
+
+        vdp2_scrn_cell_format_set(&format);
+        vdp2_priority_spn_set(SCRN_NBG0, 7);
+        vdp2_scrn_display_set(SCRN_NBG0, /* transparent = */ true);
+    } vdp2_tvmd_display_set();
+}
+
+static void
+config_1(void)
 {
     struct scrn_cell_format format;
 
@@ -277,7 +347,7 @@ config_0(void)
         vdp2_vram_control_set(vram_ctl);
 
         vdp2_scrn_cell_format_set(&format);
-        vdp2_priority_spn_set(SCRN_NBG1, 7);
+        vdp2_priority_spn_set(SCRN_NBG1, 6);
         vdp2_scrn_display_set(SCRN_NBG1, /* transparent = */ false);
     } vdp2_tvmd_display_set();
 }
