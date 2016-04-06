@@ -12,6 +12,7 @@
 
 #include "misery512.h"
 #include "saturn16.h"
+#include "curves.h"
 
 static struct smpc_peripheral_digital digital_pad;
 static uint32_t tick = 0;
@@ -24,9 +25,6 @@ static void hardware_init(void);
 static void config_0(void);
 static void config_1(void);
 
-static uint16_t x = 0;
-static uint16_t y = 0;
-
 static uint16_t g_zooming_factor_dn = 0;
 static uint16_t g_zooming_factor_in = 1;
 
@@ -36,6 +34,11 @@ void vdp2_scrn_zm_y_set(uint8_t scrn, uint16_t in, uint16_t dn);
 int
 main(void)
 {
+    uint16_t curve_index = 0;
+    uint16_t x = 0;
+    uint16_t y = 0;    
+    int8_t zoom_dir = 1;
+    
     hardware_init();
 
     config_1();
@@ -43,31 +46,20 @@ main(void)
 
     while (true) 
     {
-        vdp2_tvmd_vblank_out_wait();
+        vdp2_tvmd_vblank_in_wait();  /* VBL Begin, end of display */
 
         if (digital_pad.connected == 1) 
         {
-            if (digital_pad.pressed.button.left) 
-            {
-                x -= 4;
-            } 
-            else if (digital_pad.pressed.button.right) 
-            {
-                x += 4;
-            }
+            if(digital_pad.pressed.button.start) abort();		
+        }
 
-            if (digital_pad.pressed.button.up) 
-            {
-                y -= 4;
-            } 
-            else if (digital_pad.pressed.button.down) 
-            {
-                y += 4;
-            }
+        if(tick % 60 == 0)
+        { 
+            curve_index++;
             
-            if (digital_pad.pressed.button.l)
+            if(zoom_dir > 0)
             {
-                if(g_zooming_factor_dn < 0xFF-4) g_zooming_factor_dn += 4; 
+                if(g_zooming_factor_dn < 0xFF) g_zooming_factor_dn += zoom_dir; 
                 else
                 {
                     if(g_zooming_factor_in < 0x7)
@@ -75,9 +67,10 @@ main(void)
                         g_zooming_factor_in++;    
                         g_zooming_factor_dn = 0;
                     }
+                    else zoom_dir = -1;
                 }
             }
-            else if (digital_pad.pressed.button.r)
+            else
             {
                 if(g_zooming_factor_dn > 0x0+4) g_zooming_factor_dn -= 4; 
                 else
@@ -86,18 +79,22 @@ main(void)
                     {
                         g_zooming_factor_in--;
                         g_zooming_factor_dn = 0xFF;
-                    }                       
-                }            
-            }            
-            
-            if(digital_pad.pressed.button.start) abort();		
+                    }  
+                    else zoom_dir = 1;                     
+                } 
+            }        
         }
-
-        vdp2_tvmd_vblank_in_wait();
+        
+        //uint16_t fac = (g_zooming_factor_in*100) + (( 10*g_zooming_factor_dn) >> 8);
+        x = test_coord_x[curve_index % sizeof(test_coord_x)/sizeof(uint16_t)]; //* fac;
+        y = test_coord_y[curve_index % sizeof(test_coord_y)/sizeof(uint16_t)]; //* fac;
+        
         vdp2_scrn_scv_x_set(SCRN_NBG1, x, 0);
         vdp2_scrn_scv_y_set(SCRN_NBG1, y, 0);
         vdp2_scrn_zm_x_set(SCRN_NBG1, g_zooming_factor_in, g_zooming_factor_dn);
-        vdp2_scrn_zm_y_set(SCRN_NBG1, g_zooming_factor_in, g_zooming_factor_dn);        
+        vdp2_scrn_zm_y_set(SCRN_NBG1, g_zooming_factor_in, g_zooming_factor_dn);              
+
+        vdp2_tvmd_vblank_out_wait();  /* VBL End, beginning of display */
     }
 }
 
