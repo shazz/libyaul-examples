@@ -9,6 +9,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <fixmath.h>
 
 #include "misery512.h"
 #include "saturn16.h"
@@ -25,19 +26,22 @@ static void hardware_init(void);
 static void config_0(void);
 static void config_1(void);
 
-static uint16_t g_zooming_factor_dn = 0;
-static uint16_t g_zooming_factor_in = 1;
-
 void vdp2_scrn_zm_x_set(uint8_t scrn, uint16_t in, uint16_t dn);
 void vdp2_scrn_zm_y_set(uint8_t scrn, uint16_t in, uint16_t dn);
 
 int
 main(void)
 {
-    uint16_t curve_index = 0;
-    uint16_t x = 0;
-    uint16_t y = 0;    
-    int8_t zoom_dir = 1;
+    uint16_t curve_index ;    
+    int8_t zoom_dir;
+    fix16_t zooming_factor;
+    fix16_t zooming_factor_incr;
+    
+    curve_index = 0;    
+    zoom_dir = 1;  
+    
+    zooming_factor = fix16_from_int(0);
+    zooming_factor_incr = fix16_from_float(0.01);
     
     hardware_init();
 
@@ -51,48 +55,44 @@ main(void)
         if (digital_pad.connected == 1) 
         {
             if(digital_pad.pressed.button.start) abort();		
-        }
-
+        }  
+        
+        // only one time per second
         if(tick % 60 == 0)
         { 
             curve_index++;
             
             if(zoom_dir > 0)
             {
-                if(g_zooming_factor_dn < 0xFF) g_zooming_factor_dn += zoom_dir; 
-                else
+                zooming_factor = fix16_add(zooming_factor, zooming_factor_incr);
+                if(fix16_to_float(zooming_factor) >= 7.0)
                 {
-                    if(g_zooming_factor_in < 0x7)
-                    {
-                        g_zooming_factor_in++;    
-                        g_zooming_factor_dn = 0;
-                    }
-                    else zoom_dir = -1;
+                    zooming_factor = fix16_from_float(7.0);
+                    zoom_dir = -1;
                 }
             }
             else
             {
-                if(g_zooming_factor_dn > 0x0+4) g_zooming_factor_dn -= 4; 
-                else
+                zooming_factor = fix16_sub(zooming_factor, zooming_factor_incr);
+                if(fix16_to_float(zooming_factor) <= 0.0) 
                 {
-                    if(g_zooming_factor_in > 0x0)
-                    {
-                        g_zooming_factor_in--;
-                        g_zooming_factor_dn = 0xFF;
-                    }  
-                    else zoom_dir = 1;                     
-                } 
-            }        
+                    zooming_factor = fix16_from_int(0);
+                    zoom_dir = 1;
+                }
+            }            
         }
         
-        //uint16_t fac = (g_zooming_factor_in*100) + (( 10*g_zooming_factor_dn) >> 8);
-        x = test_coord_x[curve_index % sizeof(test_coord_x)/sizeof(uint16_t)]; //* fac;
-        y = test_coord_y[curve_index % sizeof(test_coord_y)/sizeof(uint16_t)]; //* fac;
+        fix16_t logical_x_pos = fix16_from_float(test_coord_x[curve_index % 1024]);
+        fix16_t physical_x_pos = fix16_mul(logical_x_pos, zooming_factor);
         
-        vdp2_scrn_scv_x_set(SCRN_NBG1, x, 0);
-        vdp2_scrn_scv_y_set(SCRN_NBG1, y, 0);
-        vdp2_scrn_zm_x_set(SCRN_NBG1, g_zooming_factor_in, g_zooming_factor_dn);
-        vdp2_scrn_zm_y_set(SCRN_NBG1, g_zooming_factor_in, g_zooming_factor_dn);              
+        fix16_t logical_y_pos = fix16_from_float(test_coord_y[curve_index % 1024]);
+        fix16_t physical_y_pos = fix16_mul(logical_y_pos, zooming_factor);        
+        
+        // update registers in one shot as they are contigous 16in.16dn
+        MEMORY_WRITE(32, VDP2(SCXIN1), ((uint32_t) physical_x_pos) & 0x7FFFF00);
+        MEMORY_WRITE(32, VDP2(SCYIN1), ((uint32_t) physical_y_pos) & 0x7FFFF00);
+        MEMORY_WRITE(32, VDP2(ZMXIN1), ((uint32_t) zooming_factor) & 0x7FF00);
+        MEMORY_WRITE(32, VDP2(ZMYIN1), ((uint32_t) zooming_factor) & 0x7FF00);
 
         vdp2_tvmd_vblank_out_wait();  /* VBL End, beginning of display */
     }
@@ -316,24 +316,24 @@ config_1(void)
                 pnd = (VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) + misery512_pattern_name_table_page_0[page_idx]);
 
                 a_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[0]);
-                a_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[1]);
-                a_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[2]);
-                a_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[3]);
+                a_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[0]);
+                a_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[1]);
+                a_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[1]);
 
-                b_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[4]);
-                b_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[5]);
-                b_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[6]);
-                b_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[7]);
+                b_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[1]);
+                b_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[1]);
+                b_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[2]);
+                b_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[2]);
 
-                c_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[8]);
-                c_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[9]);
-                c_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[10]);
-                c_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[11]);
+                c_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[2]);
+                c_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[2]);
+                c_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[3]);
+                c_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[3]);
                 
-                d_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[12]);
-                d_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[13]);
-                d_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[14]);
-                d_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[15]);
+                d_pages[0][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[3]);
+                d_pages[1][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[3]);
+                d_pages[2][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[4]);
+                d_pages[3][page_idx] = pnd | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette[4]);
             }
         }
 
@@ -345,76 +345,3 @@ config_1(void)
     } vdp2_tvmd_display_set();
 }
 
-/*
- * The coord increment should be a value smaller then 1 to zoon in 
- * and larger than 1 to zoom out
- * no zoom means equal to 1 
- * 
- * Only NBG0 and NBG1 can be zoomed
- * can be changed during horizontal retrace
- * max zoom out is set to 1/4 means value = 4
- * max zoom out is constrainted by bitmap color depth: 1/4 in 16 colors mode, 1/2 in 16/256 colors mode
- */
-void vdp2_scrn_zm_x_set(uint8_t scrn, uint16_t in, uint16_t dn)
-{
-#define ZMXIN0          0x0078
-#define ZMXDN0          0x007A
-#define ZMXIN1          0x0088
-#define ZMXDN1          0x008A
-        /*  integer part rounded to 3 bits*/
-        in &= 0x07; 
-
-        switch (scrn) {
-        case SCRN_NBG0:
-				/*  frac part rounded to 8 bits, shifted left by 8 */
-                dn &= 0xFF; // 
-                dn <<= 8;
-
-                /* Write to memory */
-                MEMORY_WRITE(16, VDP2(ZMXIN0), in);
-                MEMORY_WRITE(16, VDP2(ZMXN0D), dn);
-                break;
-        case SCRN_NBG1:
-                dn &= 0xFF;
-                dn <<= 8;
-
-                /* Write to memory */
-                MEMORY_WRITE(16, VDP2(ZMXIN1), in);
-                MEMORY_WRITE(16, VDP2(ZMXDN1), dn);
-                break;
-        default:
-                return;
-        }
-}
-
-void vdp2_scrn_zm_y_set(uint8_t scrn, uint16_t in, uint16_t dn)
-{
-#define ZMYIN0          0x007C
-#define ZMYDN0          0x007E
-#define ZMYIN1          0x008C
-#define ZMYDN1          0x008E
-        /*  integer part rounded to 3 bits*/
-        in &= 0x07; 
-
-        switch (scrn) {
-        case SCRN_NBG0:
-				/*  frac part rounded to 8 bits, shifted left by 8 */
-                dn &= 0xFF; // 
-                dn <<= 8;
-
-                /* Write to memory */
-                MEMORY_WRITE(16, VDP2(ZMYIN0), in);
-                MEMORY_WRITE(16, VDP2(ZMYDN0), dn);
-                break;
-        case SCRN_NBG1:
-                dn &= 0xFF;
-                dn <<= 8;
-
-                /* Write to memory */
-                MEMORY_WRITE(16, VDP2(ZMYIN1), in);
-                MEMORY_WRITE(16, VDP2(ZMYDN1), dn);
-                break;
-        default:
-                return;
-        }
-}
