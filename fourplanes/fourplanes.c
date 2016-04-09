@@ -22,31 +22,28 @@ static void vblank_in_handler(irq_mux_handle_t *);
 static void vblank_out_handler(irq_mux_handle_t *);
 
 static void hardware_init(void);
-
 static void config_0(void);
 static void config_1(void);
-
-void vdp2_scrn_zm_x_set(uint8_t scrn, uint16_t in, uint16_t dn);
-void vdp2_scrn_zm_y_set(uint8_t scrn, uint16_t in, uint16_t dn);
 
 int
 main(void)
 {
     uint16_t curve_index ;    
     int8_t zoom_dir;
-    fix16_t zooming_factor;
-    fix16_t zooming_factor_incr;
+    fix16_t zooming_factor, zooming_factor_incr;    
+    fix16_t logical_x_pos, logical_y_pos;
+    fix16_t physical_x_pos, physical_y_pos;
+
+    hardware_init();
+
+    config_1();
+    config_0();
     
     curve_index = 0;    
     zoom_dir = 1;  
     
     zooming_factor = fix16_from_int(0);
-    zooming_factor_incr = fix16_from_float(0.01);
-    
-    hardware_init();
-
-    config_1();
-    config_0();
+    zooming_factor_incr = fix16_from_float(0.01);    
 
     while (true) 
     {
@@ -57,7 +54,7 @@ main(void)
             if(digital_pad.pressed.button.start) abort();		
         }  
         
-        // only one time per second
+        // only one time per 60 frames
         if(tick % 60 == 0)
         { 
             curve_index++;
@@ -79,21 +76,21 @@ main(void)
                     zooming_factor = fix16_from_int(0);
                     zoom_dir = 1;
                 }
-            }            
+            }    
+
+            logical_x_pos = fix16_from_float(test_coord_x[curve_index % 1024]);
+            physical_x_pos = fix16_mul(logical_x_pos, zooming_factor);
+            
+            logical_y_pos = fix16_from_float(test_coord_y[curve_index % 1024]);
+            physical_y_pos = fix16_mul(logical_y_pos, zooming_factor);        
+            
+            // update registers in one shot as they are contigous 16in.16dn
+            MEMORY_WRITE(32, VDP2(SCXIN1), ((uint32_t) physical_x_pos) & 0x7FFFF00);
+            MEMORY_WRITE(32, VDP2(SCYIN1), ((uint32_t) physical_y_pos) & 0x7FFFF00);
+            MEMORY_WRITE(32, VDP2(ZMXIN1), ((uint32_t) zooming_factor) & 0x7FF00);
+            MEMORY_WRITE(32, VDP2(ZMYIN1), ((uint32_t) zooming_factor) & 0x7FF00);
         }
         
-        fix16_t logical_x_pos = fix16_from_float(test_coord_x[curve_index % 1024]);
-        fix16_t physical_x_pos = fix16_mul(logical_x_pos, zooming_factor);
-        
-        fix16_t logical_y_pos = fix16_from_float(test_coord_y[curve_index % 1024]);
-        fix16_t physical_y_pos = fix16_mul(logical_y_pos, zooming_factor);        
-        
-        // update registers in one shot as they are contigous 16in.16dn
-        MEMORY_WRITE(32, VDP2(SCXIN1), ((uint32_t) physical_x_pos) & 0x7FFFF00);
-        MEMORY_WRITE(32, VDP2(SCYIN1), ((uint32_t) physical_y_pos) & 0x7FFFF00);
-        MEMORY_WRITE(32, VDP2(ZMXIN1), ((uint32_t) zooming_factor) & 0x7FF00);
-        MEMORY_WRITE(32, VDP2(ZMYIN1), ((uint32_t) zooming_factor) & 0x7FF00);
-
         vdp2_tvmd_vblank_out_wait();  /* VBL End, beginning of display */
     }
 }
