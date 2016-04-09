@@ -288,7 +288,7 @@ void additive_init(void)
     //SCL_SET_BOKN(5);
     
     /* go ! */
-    vdp2_tvmd_display_set();      
+    vdp2_tvmd_display_set(TVMD_INTERLACE_NONE, TVMD_HORZ_NORMAL_A, TVMD_VERT_240);      
 }
 
 void additive_update(uint32_t timer __unused)

@@ -39,11 +39,17 @@ main(void)
     config_1();
     config_0();
     
+    vdp2_tvmd_display_set(TVMD_INTERLACE_NONE, TVMD_HORZ_NORMAL_A, TVMD_VERT_256);
+    
     curve_index = 0;    
     zoom_dir = 1;  
     
     zooming_factor = fix16_from_int(0);
-    zooming_factor_incr = fix16_from_float(0.01);    
+    zooming_factor_incr = fix16_from_float(0.01);  
+    logical_x_pos = fix16_from_int(0);
+    logical_y_pos = fix16_from_int(0);
+    physical_x_pos = fix16_from_int(0);
+    physical_y_pos = fix16_from_int(0);
 
     while (true) 
     {
@@ -103,10 +109,10 @@ hardware_init(void)
 
     /* VDP2 */
     vdp2_init();
-    vdp2_scrn_back_screen_color_set(VRAM_ADDR_4MBIT(2, 0x01FFFE), 0x9C00);
+    vdp2_scrn_back_screen_color_set(VRAM_ADDR_4MBIT(2, 0x01FFFE), 0x0);
     
-	// enable zoom out to 1/4 as we are in 16 colors mode for NBG0 (2 first bits, bits 8-9 for NBG1), that disables NBG2 display
-	MEMORY_WRITE(16, VDP2(ZMCTL), 0x03 << 8);        
+    // enable zoom out to 1/4 as we are in 16 colors mode for NBG0 (2 first bits, bits 8-9 for NBG1), that disables NBG2 display
+    MEMORY_WRITE(16, VDP2(ZMCTL), 0x03 << 8);        
 
     /* SMPC */
     smpc_init();
@@ -137,7 +143,8 @@ vblank_in_handler(irq_mux_handle_t *irq_mux __unused)
 static void
 vblank_out_handler(irq_mux_handle_t *irq_mux __unused)
 {
-    if ((vdp2_tvmd_vcount_get()) == 0) {
+    if ((vdp2_tvmd_vcount_get()) == 0) 
+    {
         tick = (tick & 0xFFFFFFFF) + 1;
     }
 }
@@ -206,7 +213,7 @@ config_0(void)
         vdp2_scrn_cell_format_set(&format);
         vdp2_priority_spn_set(SCRN_NBG0, 7);
         vdp2_scrn_display_set(SCRN_NBG0, /* transparent = */ true);
-    } vdp2_tvmd_display_set();
+    }
 }
 
 static void
@@ -304,8 +311,10 @@ config_1(void)
         
         uint32_t page_x;
         uint32_t page_y;
-        for (page_y = 0; page_y < page_height; page_y++) {
-            for (page_x = 0; page_x < page_width; page_x++) {
+        for (page_y = 0; page_y < page_height; page_y++) 
+        {
+            for (page_x = 0; page_x < page_width; page_x++) 
+            {
                 uint16_t page_idx;
                 page_idx = page_x + (page_width * page_y);
 
@@ -339,6 +348,6 @@ config_1(void)
         vdp2_scrn_cell_format_set(&format);
         vdp2_priority_spn_set(SCRN_NBG1, 6);
         vdp2_scrn_display_set(SCRN_NBG1, /* transparent = */ false);
-    } vdp2_tvmd_display_set();
+    }
 }
 

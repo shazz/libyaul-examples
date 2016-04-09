@@ -258,7 +258,7 @@ void init_vdp2_scrollescreens(void)
     init_scrollscreen_nbg(SCRN_NBG2, _nbg2_planes, _nbg2_cell_data, _nbg2_color_palette, NGB2_PNT_PLANE0, NGB2_PNT_PLANE1, 2, true);
     init_scrollscreen_nbg(SCRN_NBG3, _nbg3_planes, _nbg3_cell_data, _nbg3_color_palette, NGB3_PNT_PLANE0, NGB3_PNT_PLANE1, 1, false);
      
-    vdp2_tvmd_display_set(); 
+    vdp2_tvmd_display_set(TVMD_INTERLACE_NONE, TVMD_HORZ_NORMAL_A, TVMD_VERT_240); 
 }
 
 void read_digital_pad(void)
