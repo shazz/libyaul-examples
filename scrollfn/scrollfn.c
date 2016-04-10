@@ -143,7 +143,7 @@ void initScrollScreens(void)
     memcpy(_nbg0_color_palette, bitmap_palette, sizeof(bitmap_palette));    
 
     vdp2_scrn_display_set(SCRN_NBG0, /* transparent = */ false);
-    vdp2_tvmd_display_set();
+    vdp2_tvmd_display_set(TVMD_INTERLACE_NONE, TVMD_HORZ_NORMAL_A, TVMD_VERT_240);
 }
 
 int main(void)
@@ -151,18 +151,18 @@ int main(void)
 	hardware_init();
     initScrollScreens();
 
-	static uint16_t back_screen_color[] = { COLOR_RGB_DATA | 0x0842 };
-	vdp2_scrn_back_screen_set(/* single_color = */ true, VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color, 1);
+	static uint16_t back_screen_color = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
+    vdp2_scrn_back_screen_color_set(VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color);  
 
     uint16_t line = 199;
     uint16_t currentLinePos = 0;
     const uint16_t speed = 10;
     
 	/* Main loop */
-	for(;;)
+	while (!g_digital.pressed.button.start) 
 	{
         /* Wait for next vblank */
-		vdp2_tvmd_vblank_out_wait();
+		vdp2_tvmd_vblank_in_wait();
         
         uint16_t y;
         // erase top screen
@@ -184,7 +184,7 @@ int main(void)
             if(line > 1 )line--;        
         }
             
-        vdp2_tvmd_vblank_in_wait();
+        vdp2_tvmd_vblank_out_wait();
 	}
 
 	return 0;

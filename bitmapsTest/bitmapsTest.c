@@ -163,7 +163,7 @@ void initScrollScreens(void)
 
     vdp2_scrn_display_set(SCRN_NBG0, /* transparent = */ false);
     vdp2_scrn_display_set(SCRN_NBG1, /* transparent = */ true);
-    vdp2_tvmd_display_set();
+    vdp2_tvmd_display_set(TVMD_INTERLACE_NONE, TVMD_HORZ_NORMAL_A, TVMD_VERT_240);
 
 }
 
@@ -200,8 +200,8 @@ int main(void)
 	hardware_init();
     initScrollScreens();
 
-	static uint16_t back_screen_color[] = { COLOR_RGB_DATA | 0x0842 };
-	vdp2_scrn_back_screen_set(/* single_color = */ true, VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color, 1);
+	static uint16_t back_screen_color = { COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0) };
+    vdp2_scrn_back_screen_color_set(VRAM_ADDR_4MBIT(3, 0x1FFFE), back_screen_color);  
 
 	/* Main loop */
 	for(;;)
