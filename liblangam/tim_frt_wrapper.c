@@ -9,7 +9,6 @@
 #include <scu/bus/cpu/cpu/map.h>
 #include <scu/bus/cpu/smpc/smpc/map.h>
 
-
 #include "tim_frt_wrapper.h"
 
 #define TCR     				0x0E16

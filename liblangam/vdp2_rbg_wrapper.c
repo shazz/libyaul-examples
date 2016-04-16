@@ -2,7 +2,6 @@
 #include <yaul.h>
 #include "vdp2_rbg_wrapper.h"
 
-#include <fixmath.h>
 #include <stdlib.h>
 
 // Globals

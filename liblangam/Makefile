@@ -38,7 +38,7 @@ INCLUDES:= $(INSTALL_ROOT)/sh-elf/include/yaul \
     $(INSTALL_ROOT)/sh-elf/include/yaul/scu/bus/a/cs2/cd-block \
     $(INSTALL_ROOT)/sh-elf/include/yaul/scu/bus/b/vdp1 \
     $(INSTALL_ROOT)/sh-elf/include/yaul/scu/bus/b/vdp2 \
-    $(INSTALL_ROOT)/sh-elf/include/fixmath
+    $(INSTALL_ROOT)/sh-elf/include/yaul/math
 
 ARCH?= sh-elf
 

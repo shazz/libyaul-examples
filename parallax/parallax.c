@@ -166,22 +166,25 @@ void init_scrollscreen_nbg(int screen, uint16_t *planes[], uint32_t *cell_data_p
 	nbg_format.scf_map.plane_d = (uint32_t)planes[3];
 
 	vdp2_scrn_cell_format_set(&nbg_format);
-    vdp2_priority_spn_set(screen, priority);
+    vdp2_scrn_priority_set(screen, priority);
 
     /* Build the pattern data */   
     uint32_t i;
     uint16_t *nbg_page0 = planes[0];
     uint16_t *nbg_page1 = planes[1];
   
-    uint16_t palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)palette_ptr);
-    uint16_t cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cell_data_ptr);
-
+    //uint16_t palette_number = VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)palette_ptr);
+    //uint16_t cell_data_number = VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cell_data_ptr);
+    uint16_t pnd = SCRN_PND_CONFIG_0((uint32_t)cell_data_ptr, (uint32_t)palette_ptr, 0, 0);
+            
 	for (i = 0; i < 4096; i++) 
     {
-        uint16_t cell_data_number0 = cell_data_number + page0_data[i];
-        uint16_t cell_data_number1 = cell_data_number + page1_data[i];
-        nbg_page0[i] = cell_data_number0 | palette_number;
-        nbg_page1[i] = cell_data_number1 | palette_number;
+        //uint16_t cell_data_number0 = cell_data_number + page0_data[i];
+        //uint16_t cell_data_number1 = cell_data_number + page1_data[i];
+        //nbg_page0[i] = cell_data_number0 | palette_number;
+        //nbg_page1[i] = cell_data_number1 | palette_number;
+        nbg_page0[i] = pnd + page0_data[i];
+        nbg_page1[i] = pnd + page1_data[i];
 	}
 
     vdp2_scrn_display_set(screen, transparent);
@@ -258,7 +261,7 @@ void init_vdp2_scrollescreens(void)
     init_scrollscreen_nbg(SCRN_NBG2, _nbg2_planes, _nbg2_cell_data, _nbg2_color_palette, NGB2_PNT_PLANE0, NGB2_PNT_PLANE1, 2, true);
     init_scrollscreen_nbg(SCRN_NBG3, _nbg3_planes, _nbg3_cell_data, _nbg3_color_palette, NGB3_PNT_PLANE0, NGB3_PNT_PLANE1, 1, false);
      
-    vdp2_tvmd_display_set(TVMD_INTERLACE_NONE, TVMD_HORZ_NORMAL_A, TVMD_VERT_240); 
+    vdp2_tvmd_display_res_set(TVMD_INTERLACE_NONE, TVMD_HORZ_NORMAL_A, TVMD_VERT_240); 
 }
 
 void read_digital_pad(void)
@@ -437,7 +440,7 @@ int main(void)
 {
     uint32_t padButton = 0;
     uint32_t g_scroll_back4_x = 0, g_scroll_back3_x = 0, g_scroll_back2_x = 0, g_scroll_back1_x = 0;
-    int16_t g_scroll_back1_y = 33, g_scroll_back2_y = 33, g_scroll_back3_y = 33, g_scroll_back4_y = 33;
+    //int16_t g_scroll_back1_y = 33, g_scroll_back2_y = 33, g_scroll_back3_y = 33, g_scroll_back4_y = 33;
 
     irq_mux_t *vblank_in;
     irq_mux_t *vblank_out;
@@ -474,27 +477,27 @@ int main(void)
 	  	vdp2_tvmd_vblank_in_wait();
     
         // update positions
-        vdp2_scrn_scv_x_set(SCRN_NBG0, g_scroll_back4_x, 0);
-        vdp2_scrn_scv_x_set(SCRN_NBG1, g_scroll_back3_x, 0);
-        vdp2_scrn_scv_x_set(SCRN_NBG2, g_scroll_back2_x, 0);
-        vdp2_scrn_scv_x_set(SCRN_NBG3, g_scroll_back1_x, 0);
+        vdp2_scrn_scroll_x_set(SCRN_NBG0, fix16_from_int(g_scroll_back4_x));
+        vdp2_scrn_scroll_x_set(SCRN_NBG1, fix16_from_int(g_scroll_back3_x));
+        vdp2_scrn_scroll_x_set(SCRN_NBG2, fix16_from_int(g_scroll_back2_x));
+        vdp2_scrn_scroll_x_set(SCRN_NBG3, fix16_from_int(g_scroll_back1_x));
         
-        vdp2_scrn_scv_y_set(SCRN_NBG0, g_scroll_back4_y, 0);
-        vdp2_scrn_scv_y_set(SCRN_NBG1, g_scroll_back3_y, 0);
-        vdp2_scrn_scv_y_set(SCRN_NBG2, g_scroll_back2_y, 0);
-        vdp2_scrn_scv_y_set(SCRN_NBG3, g_scroll_back1_y, 0);        
-        
+        /*vdp2_scrn_scroll_y_set(SCRN_NBG0, fix16_from_int(g_scroll_back4_y));
+        vdp2_scrn_scroll_y_set(SCRN_NBG1, fix16_from_int(g_scroll_back3_y));
+        vdp2_scrn_scroll_y_set(SCRN_NBG2, fix16_from_int(g_scroll_back2_y));
+        vdp2_scrn_scroll_y_set(SCRN_NBG3, fix16_from_int(g_scroll_back1_y));        
+        */
         g_scroll_back4_x = (g_scroll_back4_x + 6) % 1024;
         g_scroll_back3_x = (g_scroll_back3_x + 4) % 1024;
         g_scroll_back2_x = (g_scroll_back2_x + 2) % 1024;
         g_scroll_back1_x = (g_scroll_back1_x + 1) % 1024;
         
         // move parallax y against spaceship y
-        g_scroll_back1_y = 33 + ( g_scroll_sprite_y - (240/2)) / 6;
+        /*g_scroll_back1_y = 33 + ( g_scroll_sprite_y - (240/2)) / 6;
         g_scroll_back2_y = 33 + ( g_scroll_sprite_y - (240/2)) / 8;
         g_scroll_back3_y = 33 + ( g_scroll_sprite_y - (240/2)) / 8;
         g_scroll_back4_y = 33 + ( g_scroll_sprite_y - (240/2)) / 9;
-        
+        */
         check_collisions();
         update_plasma();
         update_boss();

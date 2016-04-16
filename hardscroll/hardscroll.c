@@ -14,20 +14,21 @@
 #include "saturn16.h"
 #include "curves.h"
 
-#define N0LSS0 (1 << 4)
-#define N0LSS1 (1 << 5) //enable 8 lines block - 00, 01 10 11 for 1,2, 4 or 8 lines based on non-interlaced settings
-#define N0LZMX (1 << 3) // also enable linescroll in sync with zoom, scale horizontally per line units
+#define SCRN_LS_N0LSS0 (1 << 4)
+#define SCRN_LS_N0LSS1 (1 << 5) //enable 8 lines block - 00, 01 10 11 for 1,2, 4 or 8 lines based on non-interlaced settings
+#define SCRN_LS_N0LZMX (1 << 3) // also enable linescroll in sync with zoom, scale horizontally per line units
 
-#define N1LSS0 (1 << 12)
-#define N1LSS1 (1 << 13) /
-#define N1LZMX (1 << 11)
+#define SCRN_LS_N1LSS0 (1 << 12)
+#define SCRN_LS_N1LSS1 (1 << 13)
+#define SCRN_LS_N1LZMX (1 << 11)
 
 struct smpc_peripheral_digital g_digital;
 static void vblank_in_handler(irq_mux_handle_t *);
 static void vblank_out_handler(irq_mux_handle_t *);
 
 /* Line Scroll table address */
-static uint32_t *line_scroll_tb = (uint32_t *)VRAM_ADDR_4MBIT(1, 0x1F000);
+static uint32_t *line_scroll_tb_nbg0 = (uint32_t *)VRAM_ADDR_4MBIT(1, 0x0);
+static uint32_t *line_scroll_tb_nbg1 = (uint32_t *)VRAM_ADDR_4MBIT(1, 0x2000);
 struct scrn_ls_format linescrollfmt_nbg0;
 struct scrn_ls_format linescrollfmt_nbg1;
 
@@ -54,18 +55,24 @@ void init_all(void)
     irq_mux_handle_add(vblank_out, vblank_out_handler, NULL);
     cpu_intc_enable();
 
-    // copy line scroll table in VRAM
-	uint16_t y;
-	for (y = 0; y < 512; y++) 
+    // copy line scroll tables in VRAM
+	uint16_t i;
+	for (i = 0; i < 1024; i++) 
 	{
-			line_scroll_tb[y] = (lut[y]) << 15;
-			line_scroll_tb[y + 512] = (lut[y]) << 15;
+			line_scroll_tb_nbg0[2*i]        = ((uint32_t) ( fix16_from_float(test_coord_x[i])) >> 2) & 0x7FFFF00;
+            line_scroll_tb_nbg0[(2*i)+1]    = ((uint32_t) ( fix16_from_float(test_coord_y[i])) >> 2) & 0x7FFFF00;
 	}
+    
+	for (i = 0; i < 1024; i++) 
+	{
+            line_scroll_tb_nbg1[i]        = ((uint32_t) ( fix16_from_float(test_coord_y[i])) >> 2) & 0x7FFFF00;
+            //line_scroll_tb_nbg1[(2*i)+1]    = (uint32_t) ( fix16_from_float(1.0) & 0x7FF00 );
+	}    
 
     config_1();
     config_0();
     
-    vdp2_tvmd_display_set(TVMD_INTERLACE_NONE, TVMD_HORZ_NORMAL_A, TVMD_VERT_256);
+    vdp2_tvmd_display_res_set(TVMD_INTERLACE_NONE, TVMD_HORZ_NORMAL_A, TVMD_VERT_256);
     vdp2_scrn_back_screen_color_set(VRAM_ADDR_4MBIT(3, 0x1FFFE), COLOR_RGB_DATA | COLOR_RGB555(0, 0, 0));  
 }
 
@@ -76,8 +83,8 @@ int main(void)
     fix16_t zooming_factor, zooming_factor_incr;    
     fix16_t logical_x_pos, logical_y_pos;
     fix16_t physical_x_pos, physical_y_pos;
-    uint16_t ofs_nbg0 = 0;
-    uint16_t ofs_nbg1 = 0;
+    uint32_t ofs_nbg0 = 0;
+    uint32_t ofs_nbg1 = 0;
 
     init_all();
     
@@ -127,18 +134,30 @@ int main(void)
         MEMORY_WRITE(32, VDP2(ZMXIN1), ((uint32_t) zooming_factor) & 0x7FF00);
         MEMORY_WRITE(32, VDP2(ZMYIN1), ((uint32_t) zooming_factor) & 0x7FF00);      
         
-        // for background
+        // for logo
         linescrollfmt_nbg0.ls_scrn = SCRN_NBG0;
-        linescrollfmt_nbg0.ls_fun = SCRN_LS_N0SCX | SCRN_LS_N1SCX;  // | N0LSS0; // | N0LSS0 | N0LSS1; // | N0LZMX        
-        linescrollfmt_nbg0.ls_lsta = (uint32_t)line_scroll_tb | (ofs_nbg0 & (2048 - 1));
+        linescrollfmt_nbg0.ls_fun = SCRN_LS_N0SCX;       
+        linescrollfmt_nbg0.ls_lsta = (uint32_t)line_scroll_tb_nbg0  + ofs_nbg0; //| (ofs_nbg0 & (4096 - 1));
         vdp2_scrn_ls_set(&linescrollfmt_nbg0);
-        ofs_nbg0 += 20;
+        ofs_nbg0 += 4;
+        if(ofs_nbg0 >= 4095) ofs_nbg0=0;
         
+        // foir background 
         linescrollfmt_nbg1.ls_scrn = SCRN_NBG1;
-        linescrollfmt_nbg1.ls_fun = SCRN_LS_N1SCX | SCRN_LS_N0SCX;  // | N0LSS0; // | N0LSS0 | N0LSS1; // | N0LZMX         
-        linescrollfmt_nbg1.ls_lsta = (uint32_t)line_scroll_tb | (ofs_nbg1 & (2048 - 1));
+        linescrollfmt_nbg1.ls_fun = SCRN_LS_N1SCX | SCRN_LS_N0SCX; // | SCRN_LS_N1LZMX;       
+        linescrollfmt_nbg1.ls_lsta = (uint32_t)line_scroll_tb_nbg1 | (ofs_nbg1 & (2048 - 1));
         vdp2_scrn_ls_set(&linescrollfmt_nbg1);        
         ofs_nbg1 += 16;   
+        
+        /*uint16_t i;
+        //fix16_t inv_zooming_factor = fix16_sub(fix16_from_float(7.0), zooming_factor);
+        fix16_t no_zoom = fix16_from_float(1.0);
+        for (i = 0; i < 512; i++) 
+        {
+                //line_scroll_tb_nbg1[(2*i)+1] = ((uint32_t) zooming_factor) & 0x7FF00;
+                line_scroll_tb_nbg1[(2*i)+1] = ((uint32_t) no_zoom) & 0x7FF00;
+        }            
+        */ 
         
         vdp2_tvmd_vblank_out_wait();  /* VBL End, beginning of display */
     }
@@ -200,7 +219,7 @@ static void config_0(void)
     vram_ctl->vram_cycp.pt[3].t0 = VRAM_CTL_CYCP_NO_ACCESS;
 	
 	linescrollfmt_nbg0.ls_scrn = SCRN_NBG0;
-	linescrollfmt_nbg0.ls_lsta = (uint32_t)line_scroll_tb;
+	linescrollfmt_nbg0.ls_lsta = (uint32_t)line_scroll_tb_nbg0;
 	linescrollfmt_nbg0.ls_fun = SCRN_LS_N0SCX;  // | N0LSS0; // | N0LSS0 | N0LSS1; // | N0LZMX
 	
 	vdp2_scrn_ls_set(&linescrollfmt_nbg0);
@@ -219,13 +238,14 @@ static void config_0(void)
 
         for (i = 0; i < 2048; i++) 
         {
-            nbg0_page0[i] = (VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) + saturn16_pattern_name_table_page_0[i]) | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette);
+            //nbg0_page0[i] = (VDP2_PN_CONFIG_1_CHARACTER_NUMBER((uint32_t)cpd) + saturn16_pattern_name_table_page_0[i]) | VDP2_PN_CONFIG_0_PALETTE_NUMBER((uint32_t)color_palette);
+            nbg0_page0[i] = SCRN_PND_CONFIG_0((uint32_t)cpd, (uint32_t)color_palette, 0, 0) + saturn16_pattern_name_table_page_0[i]; 
         }
 
         vdp2_vram_control_set(vram_ctl);
 
         vdp2_scrn_cell_format_set(&format);
-        vdp2_priority_spn_set(SCRN_NBG0, 7);
+        vdp2_scrn_priority_set(SCRN_NBG0, 7);
         vdp2_scrn_display_set(SCRN_NBG0, /* transparent = */ true);
     }
 }
@@ -282,8 +302,8 @@ static void config_1(void)
     vram_ctl->vram_cycp.pt[2].t0 = VRAM_CTL_CYCP_NO_ACCESS;
 
 	linescrollfmt_nbg1.ls_scrn = SCRN_NBG1;
-	linescrollfmt_nbg1.ls_lsta = (uint32_t)line_scroll_tb;
-	linescrollfmt_nbg1.ls_fun = SCRN_LS_N1SCX; // | N0LZMX ;  // | N0LSS0; // | N0LSS0 | N0LSS1; // | N0LZMX
+	linescrollfmt_nbg1.ls_lsta = (uint32_t)line_scroll_tb_nbg1;
+	linescrollfmt_nbg1.ls_fun = SCRN_LS_N1SCX; // | SCRN_LS_N1LZMX;
     vdp2_scrn_ls_set(&linescrollfmt_nbg1);
 
     /* We want to be in VBLANK-IN (retrace) */

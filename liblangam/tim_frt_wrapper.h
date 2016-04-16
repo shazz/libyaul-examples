@@ -12,7 +12,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#include <fixmath.h>
+#include <math.h>
 
 // Clock select are defined in bits 1-0 of Time Control Register (TCR)
 // 0 0 : freq/8

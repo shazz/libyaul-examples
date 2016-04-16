@@ -13,7 +13,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 
-#include <fixmath.h>
+#include <math.h>
 
 #define RBG0		0x00000001
 #define RBG1		0x00000002

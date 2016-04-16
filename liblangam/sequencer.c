@@ -53,7 +53,7 @@ void sequencer_initialize(void)
     }
         
 #ifdef DEBUG   
-    cons_init(CONS_DRIVER_VDP2);  
+    cons_init(CONS_DRIVER_VDP2, 80, 60);  
     consbuf = (char *)malloc(1024); 
 #endif       
 }
